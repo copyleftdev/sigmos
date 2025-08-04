@@ -1,0 +1,22 @@
+[package]
+name = "sigmos-plugins"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SIGMOS plugin system and official plugins (mcp, rest, etc.)"
+
+[dependencies]
+sigmos-core = { path = "../core" }
+sigmos-runtime = { path = "../runtime" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+futures.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+insta.workspace = true
+tokio-test = "0.4"

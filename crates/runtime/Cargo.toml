@@ -1,0 +1,23 @@
+[package]
+name = "sigmos-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SIGMOS runtime evaluation engine and orchestration"
+
+[dependencies]
+sigmos-core = { path = "../core" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+futures.workspace = true
+indexmap.workspace = true
+once_cell.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+insta.workspace = true
+tokio-test = "0.4"

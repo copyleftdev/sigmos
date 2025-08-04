@@ -1,0 +1,38 @@
+spec "Agent" v1.0 {
+  description: "Defines an AI Agent with LLM prompt capabilities."
+
+  inputs:
+    name: string
+    tone: enum("friendly", "hostile", "professional")
+    api_key: string { secret: true }
+    max_tokens: int { default: 1000 }
+
+  computed:
+    greeting: -> "Hello, I'm {{name}}, and I'm {{tone}}."
+    system_prompt: -> "You are {{name}}, a {{tone}} AI assistant."
+
+  events:
+    on_create(agent): mcp.call("mission.begin", {
+      auth: ref("api_key"),
+      payload: { 
+        id: agent.name,
+        config: {
+          tone: agent.tone,
+          max_tokens: agent.max_tokens
+        }
+      }
+    })
+
+    on_change(field): log("Field {{field}} changed")
+
+  constraints:
+    assert name != ""
+    ensure tone in ["friendly", "hostile", "professional"]
+    assert max_tokens > 0
+    assert max_tokens <= 4000
+
+  lifecycle:
+    before: validate
+    after: log("agent {{name}} initialized successfully")
+    finally: cleanup()
+}

@@ -1,0 +1,46 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage reports
+*.profraw
+lcov.info
+cov.info
+
+# Documentation build
+/docs/book/
+/docs/target/
+
+# Plugin artifacts
+/registry/cache/
+/registry/tmp/
+
+# Test artifacts
+/test-results/
+/test-output/
+
+# Environment files
+.env
+.env.local
+.env.*.local

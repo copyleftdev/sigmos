@@ -1,0 +1,17 @@
+[package]
+name = "sigmos-transpiler"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SIGMOS transpiler for export formats (json, yaml, etc.)"
+
+[dependencies]
+sigmos-core = { path = "../core" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

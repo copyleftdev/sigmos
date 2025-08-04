@@ -1,0 +1,79 @@
+// SIGMOS Grammar Definition
+// PEG grammar for SIGMOS DSL using pest parser
+
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
+
+// Identifiers and literals
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+boolean = { "true" | "false" }
+
+// Version specification
+version = { ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+// Type system
+primitive_type = { "string" | "int" | "float" | "bool" | "null" }
+generic_type = { identifier ~ "<" ~ type_expr ~ ("," ~ type_expr)* ~ ">" }
+type_expr = { generic_type | primitive_type | identifier }
+
+// Modifiers
+modifier = { "optional" | "readonly" | "default" | "computed" | "secret" | "generate" | "ref" }
+
+// Field definition
+field_def = { identifier ~ ":" ~ type_expr ~ ("{" ~ field_options ~ "}")? }
+field_options = { field_option ~ ("," ~ field_option)* }
+field_option = { modifier ~ (":" ~ (string_literal | boolean | number))? }
+
+// Spec definition
+spec_def = { "spec" ~ string_literal ~ "v" ~ version ~ "{" ~ spec_body ~ "}" }
+spec_body = { spec_section* }
+spec_section = { inputs_section | computed_section | events_section | constraints_section | lifecycle_section | extensions_section | types_section }
+
+// Sections
+inputs_section = { "inputs:" ~ field_def* }
+computed_section = { "computed:" ~ computed_field* }
+events_section = { "events:" ~ event_def* }
+constraints_section = { "constraints:" ~ constraint_def* }
+lifecycle_section = { "lifecycle:" ~ lifecycle_def* }
+extensions_section = { "extensions" ~ "{" ~ extension_def* ~ "}" }
+types_section = { "types" ~ "{" ~ type_def* ~ "}" }
+
+// Computed fields
+computed_field = { identifier ~ ":" ~ "->" ~ expression }
+
+// Events
+event_def = { event_type ~ "(" ~ identifier ~ ")" ~ ":" ~ action }
+event_type = { "on_create" | "on_change" | "on_error" | identifier }
+
+// Actions
+action = { function_call | identifier }
+function_call = { identifier ~ "." ~ identifier ~ "(" ~ arguments? ~ ")" }
+arguments = { argument ~ ("," ~ argument)* }
+argument = { identifier ~ ":" ~ expression }
+
+// Expressions
+expression = { string_template | string_literal | number | boolean | identifier | function_call }
+string_template = @{ "\"" ~ template_content* ~ "\"" }
+template_content = { template_var | template_text }
+template_var = { "{{" ~ identifier ~ "}}" }
+template_text = @{ (!"{{" ~ !"\"" ~ ANY)+ }
+
+// Constraints
+constraint_def = { constraint_type ~ expression }
+constraint_type = { "assert" | "ensure" }
+
+// Lifecycle
+lifecycle_def = { lifecycle_phase ~ ":" ~ action }
+lifecycle_phase = { "before" | "after" | "finally" }
+
+// Extensions
+extension_def = { identifier ~ ":" ~ import_spec }
+import_spec = { "import(" ~ string_literal ~ ")" }
+
+// Type definitions
+type_def = { identifier ~ "=" ~ type_expr }
+
+// Root
+sigmos_file = { SOI ~ spec_def ~ EOI }

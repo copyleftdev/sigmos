@@ -1,0 +1,84 @@
+spec "DataPipeline" v1.2 {
+  description: "A reactive data processing pipeline with AI analysis."
+
+  extensions {
+    mcp: import("sigmos.std.net.mcp@1.0")
+    qdrant: import("sigmos.ai.qdrant.embed@0.3")
+    rest: import("sigmos.std.net.rest@2.1")
+  }
+
+  types {
+    DataPoint = struct {
+      id: string
+      content: string
+      timestamp: int
+      metadata: map<string, string>
+    }
+  }
+
+  inputs:
+    source_url: string
+    batch_size: int { default: 100 }
+    embedding_model: string { default: "text-embedding-ada-002" }
+    vector_db_url: string { secret: true }
+
+  computed:
+    processing_config: -> {
+      "batch_size": batch_size,
+      "model": embedding_model,
+      "timestamp": now()
+    }
+
+    summary_prompt: prompt.embed(
+      "Analyze the following data points and provide insights: {{data}}"
+    )
+
+  events:
+    on_create(pipeline): {
+      rest.call("GET", source_url) |> 
+      process_batch() |>
+      qdrant.embed(embedding_model) |>
+      store_vectors()
+    }
+
+    on_error(error): {
+      log("Pipeline error: {{error.message}}")
+      mcp.call("alert.send", {
+        level: "error",
+        message: error.message,
+        context: error.context
+      })
+    }
+
+  actions:
+    process_batch: {
+      type: computed
+      logic: -> data.chunk(batch_size).map(transform_item)
+    }
+
+    store_vectors: {
+      type: mcp.call
+      endpoint: vector_db_url
+      method: "POST"
+      payload: -> {
+        "vectors": vectors,
+        "metadata": processing_config
+      }
+    }
+
+  constraints:
+    assert source_url.starts_with("https://")
+    ensure batch_size > 0 && batch_size <= 1000
+    assert embedding_model in ["text-embedding-ada-002", "text-embedding-3-small"]
+
+  lifecycle:
+    before: {
+      validate_credentials()
+      check_endpoints()
+    }
+    after: {
+      log("Pipeline {{pipeline.id}} processing complete")
+      metrics.record("pipeline.success", 1)
+    }
+    finally: cleanup_temp_files()
+}
