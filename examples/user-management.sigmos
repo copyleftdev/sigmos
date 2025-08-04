@@ -1,0 +1,207 @@
+spec "UserManagement" v1.0.0 {
+    description: "Complete user management system with validation, authentication, and notifications"
+    
+    // Input fields for user registration
+    input first_name: String {
+        description: "User's first name"
+        required: true
+        min_length: 2
+        max_length: 50
+    }
+    
+    input last_name: String {
+        description: "User's last name"
+        required: true
+        min_length: 2
+        max_length: 50
+    }
+    
+    input email: String {
+        description: "User's email address"
+        required: true
+        pattern: "^[^@]+@[^@]+\\.[^@]+$"
+    }
+    
+    input password: String {
+        description: "User's password"
+        required: true
+        secret: true
+        min_length: 8
+    }
+    
+    input age: Number {
+        description: "User's age in years"
+        required: true
+        min: 13
+        max: 120
+    }
+    
+    input role: String = "user" {
+        description: "User's role in the system"
+        enum: ["user", "admin", "moderator"]
+    }
+    
+    // Computed fields
+    computed full_name: String = first_name + " " + last_name
+    
+    computed display_name: String = len(first_name) > 15 
+        ? upper(first_name[0]) + ". " + last_name
+        : full_name
+    
+    computed email_domain: String = email.split("@")[1]
+    
+    computed is_adult: Boolean = age >= 18
+    
+    computed account_type: String = is_adult ? "standard" : "minor"
+    
+    computed password_strength: String = len(password) >= 12 && 
+                                       password.contains_uppercase() && 
+                                       password.contains_lowercase() && 
+                                       password.contains_digit() && 
+                                       password.contains_special() 
+                                       ? "strong" : "weak"
+    
+    computed welcome_message: String = `
+Welcome to our platform, ${display_name}!
+
+Your account details:
+- Email: ${email}
+- Role: ${role}
+- Account Type: ${account_type}
+- Password Strength: ${password_strength}
+
+${is_adult ? "You have full access to all features." : "Some features are restricted for minors."}
+    `
+    
+    computed user_profile: Object = {
+        "id": generate_uuid(),
+        "full_name": full_name,
+        "email": email,
+        "age": age,
+        "role": role,
+        "account_type": account_type,
+        "created_at": now(),
+        "is_active": true
+    }
+    
+    // Events
+    event onCreate(user_profile) {
+        // Log user creation
+        log("New user registered: ${user_profile.email}")
+        
+        // Send welcome email
+        rest.post("/api/emails/send", {
+            to: user_profile.email,
+            subject: "Welcome to Our Platform!",
+            template: "welcome",
+            data: {
+                name: user_profile.full_name,
+                account_type: user_profile.account_type
+            }
+        })
+        
+        // Create user in database
+        rest.post("/api/users", user_profile)
+        
+        // Send notification to admin for new registrations
+        if (user_profile.role == "admin") {
+            rest.post("/api/notifications", {
+                type: "admin_registration",
+                message: "New admin user registered: ${user_profile.full_name}",
+                priority: "high"
+            })
+        }
+        
+        // Generate AI-powered user insights
+        mcp.analyze(user_profile, {
+            task: "user_segmentation",
+            include_recommendations: true
+        })
+    }
+    
+    event onUpdate(user_profile) {
+        log("User profile updated: ${user_profile.email}")
+        
+        // Update user in database
+        rest.put("/api/users/${user_profile.id}", user_profile)
+        
+        // Send update notification
+        rest.post("/api/emails/send", {
+            to: user_profile.email,
+            subject: "Profile Updated",
+            template: "profile_update",
+            data: user_profile
+        })
+    }
+    
+    event onError(error) {
+        log("User management error: ${error.message}")
+        
+        // Send error notification to admin
+        rest.post("/api/notifications", {
+            type: "error",
+            message: "User management error: ${error.message}",
+            stack: error.stack,
+            priority: "critical"
+        })
+    }
+    
+    // Constraints
+    constraint {
+        assert: len(password) >= 8
+        message: "Password must be at least 8 characters long"
+    }
+    
+    constraint {
+        assert: email.contains("@") && email.contains(".")
+        message: "Email must be a valid email address"
+    }
+    
+    constraint {
+        assert: age >= 13
+        message: "Users must be at least 13 years old"
+    }
+    
+    constraint {
+        assert: first_name != "" && last_name != ""
+        message: "First name and last name are required"
+    }
+    
+    constraint {
+        ensure: user_profile.id != ""
+        message: "User profile must have a valid ID"
+    }
+    
+    constraint {
+        ensure: user_profile.created_at != ""
+        message: "User profile must have a creation timestamp"
+    }
+    
+    // Lifecycle hooks
+    lifecycle before {
+        log("Starting user registration process")
+        
+        // Validate email uniqueness
+        rest.get("/api/users/check-email", { email: email })
+        
+        // Check for banned domains
+        rest.get("/api/security/check-domain", { domain: email_domain })
+    }
+    
+    lifecycle after {
+        log("User registration completed successfully")
+        
+        // Clean up temporary data
+        cleanup_temp_data()
+        
+        // Update analytics
+        rest.post("/api/analytics/events", {
+            event: "user_registered",
+            properties: {
+                domain: email_domain,
+                age_group: is_adult ? "adult" : "minor",
+                role: role
+            }
+        })
+    }
+}
