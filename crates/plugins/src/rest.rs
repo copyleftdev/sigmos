@@ -400,11 +400,10 @@ mod tests {
                     RuntimeError::Plugin(_) => {
                         // This is expected if there's no network access
                         println!(
-                            "Network request failed (expected in some environments): {}",
-                            e
+                            "Network request failed (expected in some environments): {e}"
                         );
                     }
-                    _ => panic!("Unexpected error type: {}", e),
+                    _ => panic!("Unexpected error type: {e}"),
                 }
             }
         }
