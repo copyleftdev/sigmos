@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { Cpu, Layers, Zap, Shield, Code, Sparkles } from 'lucide-astro';
 ---
 
 <Layout title="SigmOS - Next-Generation DSL for AI-Native Systems">
@@ -31,17 +32,14 @@ import Layout from '../layouts/Layout.astro';
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-          <a href="/sigmos/docs/getting-started" 
-             class="bg-gradient-to-r from-primary-600 to-accent-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-primary-500 hover:to-accent-500 transition-all duration-300 transform hover:scale-105">
-            ✨ Get Started
+          <a href="/sigmos/docs/getting-started" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg">
+            Get Started
           </a>
-          <a href="/sigmos/examples" 
-             class="bg-gray-800/50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg border border-gray-700 hover:bg-gray-700/50 transition-all duration-300">
-            💻 View Examples
+          <a href="/sigmos/examples" class="bg-gray-800 text-white px-8 py-4 rounded-xl font-semibold text-lg">
+            View Examples
           </a>
-          <a href="https://github.com/copyleftdev/sigmos" 
-             class="text-gray-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300">
-            ⭐ GitHub
+          <a href="https://github.com/copyleftdev/sigmos" class="text-gray-300 px-8 py-4 rounded-xl font-semibold text-lg">
+            GitHub
           </a>
         </div>
 
@@ -55,7 +53,7 @@ import Layout from '../layouts/Layout.astro';
               </div>
               <span class="text-gray-400 text-sm font-mono">agent.sigmos</span>
             </div>
-            <pre class="p-6 text-left overflow-x-auto text-sm font-mono text-gray-300">spec "AIAgent" v1.0 {
+            <pre class="p-6 text-left overflow-x-auto text-sm font-mono text-gray-300">{`spec "AIAgent" v1.0 {
   description: "An intelligent agent"
   
   inputs:
@@ -68,7 +66,7 @@ import Layout from '../layouts/Layout.astro';
       user: "Hello!"
       model: "gpt-4"
     }
-}</pre>
+}`}</pre>
           </div>
         </div>
       </div>
@@ -137,29 +135,6 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 </Layout>
-
-
-  <span class="text-blue-400">description</span>: <span class="text-green-400">"An intelligent agent with multimodal capabilities"</span>
-  
-  <span class="text-primary-400">inputs</span>:
-    <span class="text-blue-400">name</span>: <span class="text-yellow-400">string</span>
-    <span class="text-blue-400">personality</span>: <span class="text-yellow-400">enum</span>(<span class="text-green-400">"helpful"</span>, <span class="text-green-400">"creative"</span>, <span class="text-green-400">"analytical"</span>)
-    <span class="text-blue-400">api_key</span>: <span class="text-yellow-400">string</span> { <span class="text-red-400">secret</span>: <span class="text-accent-400">true</span> }
-  
-  <span class="text-primary-400">computed</span>:
-    <span class="text-blue-400">greeting</span>: -> <span class="text-green-400">"Hello! I'm {{name}}, your {{personality}} AI assistant."</span>
-  
-  <span class="text-primary-400">actions</span>:
-    <span class="text-blue-400">respond</span>: <span class="text-yellow-400">prompt</span> {
-      <span class="text-blue-400">system</span>: <span class="text-green-400">"You are a {{personality}} AI assistant named {{name}}."</span>
-      <span class="text-blue-400">user</span>: <span class="text-green-400">"{{input.message}}"</span>
-      <span class="text-blue-400">model</span>: <span class="text-green-400">"gpt-4"</span>
-    }
-}</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- Features Section -->
@@ -262,18 +237,18 @@ import Layout from '../layouts/Layout.astro';
             <span class="text-gray-400 text-sm font-mono">Terminal</span>
             <button class="text-gray-400 hover:text-white transition-colors text-sm">Copy</button>
           </div>
-          <pre class="p-6 text-left overflow-x-auto"><code class="text-sm font-mono text-gray-300"><span class="text-gray-500"># Clone the repository</span>
-<span class="text-primary-400">git clone</span> https://github.com/copyleftdev/sigmos.git
-<span class="text-primary-400">cd</span> sigmos
+          <pre class="p-6 text-left overflow-x-auto"><code class="text-sm font-mono text-gray-300"># Clone the repository
+git clone https://github.com/copyleftdev/sigmos.git
+cd sigmos
 
-<span class="text-gray-500"># Build the project</span>
-<span class="text-primary-400">cargo build</span> --release
+# Build the project
+cargo build --release
 
-<span class="text-gray-500"># Install the CLI</span>
-<span class="text-primary-400">cargo install</span> --path crates/cli
+# Install the CLI
+cargo install --path crates/cli
 
-<span class="text-gray-500"># Run your first spec</span>
-<span class="text-primary-400">sigmos run</span> examples/agent.sigmos</code></pre>
+# Run your first spec
+sigmos run examples/agent.sigmos</code></pre>
         </div>
       </div>
     </div>
