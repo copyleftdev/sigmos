@@ -145,6 +145,36 @@ pub enum Expression {
         method: String,
         arguments: Vec<Argument>,
     },
+    // Arithmetic operators
+    Add(Box<Expression>, Box<Expression>),
+    Subtract(Box<Expression>, Box<Expression>),
+    Multiply(Box<Expression>, Box<Expression>),
+    Divide(Box<Expression>, Box<Expression>),
+    Modulo(Box<Expression>, Box<Expression>),
+    
+    // Comparison operators
+    Equal(Box<Expression>, Box<Expression>),
+    NotEqual(Box<Expression>, Box<Expression>),
+    LessThan(Box<Expression>, Box<Expression>),
+    LessThanOrEqual(Box<Expression>, Box<Expression>),
+    GreaterThan(Box<Expression>, Box<Expression>),
+    GreaterThanOrEqual(Box<Expression>, Box<Expression>),
+    
+    // Logical operators
+    And(Box<Expression>, Box<Expression>),
+    Or(Box<Expression>, Box<Expression>),
+    Not(Box<Expression>),
+    
+    // Conditional expression
+    Conditional {
+        condition: Box<Expression>,
+        if_true: Box<Expression>,
+        if_false: Box<Expression>,
+    },
+    
+    // Array and object access
+    ArrayAccess(Box<Expression>, Box<Expression>),
+    PropertyAccess(Box<Expression>, String),
 }
 
 /// Parts of string templates
