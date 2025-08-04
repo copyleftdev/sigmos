@@ -114,14 +114,32 @@ impl Transpiler {
     ///
     /// * `spec` - The specification to convert
     ///
-    /// # Note
+    /// # Examples
     ///
-    /// This is a placeholder implementation that converts to JSON first.
-    /// A proper YAML implementation would use the `serde_yaml` crate.
+    /// ```rust
+    /// use sigmos_transpiler::Transpiler;
+    /// use sigmos_core::ast::*;
+    ///
+    /// let transpiler = Transpiler::new();
+    /// let spec = Spec {
+    ///     name: "Test".to_string(),
+    ///     version: Version { major: 1, minor: 0, patch: None },
+    ///     description: None,
+    ///     inputs: vec![],
+    ///     computed: vec![],
+    ///     events: vec![],
+    ///     constraints: vec![],
+    ///     lifecycle: vec![],
+    ///     extensions: vec![],
+    ///     types: vec![],
+    /// };
+    ///
+    /// let yaml = transpiler.to_yaml(&spec).unwrap();
+    /// assert!(yaml.contains("name: Test"));
+    /// ```
     pub fn to_yaml(&self, spec: &Spec) -> TranspilerResult<String> {
-        // Placeholder: convert to JSON first
-        let json = self.to_json(spec)?;
-        Ok(format!("# YAML representation (placeholder)\n# {}", json))
+        serde_yaml::to_string(spec)
+            .map_err(|e| TranspilerError::Yaml(format!("YAML serialization failed: {}", e)))
     }
 
     /// Convert a SIGMOS specification to TOML
@@ -130,14 +148,32 @@ impl Transpiler {
     ///
     /// * `spec` - The specification to convert
     ///
-    /// # Note
+    /// # Examples
     ///
-    /// This is a placeholder implementation that converts to JSON first.
-    /// A proper TOML implementation would use the `toml` crate.
+    /// ```rust
+    /// use sigmos_transpiler::Transpiler;
+    /// use sigmos_core::ast::*;
+    ///
+    /// let transpiler = Transpiler::new();
+    /// let spec = Spec {
+    ///     name: "Test".to_string(),
+    ///     version: Version { major: 1, minor: 0, patch: None },
+    ///     description: None,
+    ///     inputs: vec![],
+    ///     computed: vec![],
+    ///     events: vec![],
+    ///     constraints: vec![],
+    ///     lifecycle: vec![],
+    ///     extensions: vec![],
+    ///     types: vec![],
+    /// };
+    ///
+    /// let toml_str = transpiler.to_toml(&spec).unwrap();
+    /// assert!(toml_str.contains("name = \"Test\""));
+    /// ```
     pub fn to_toml(&self, spec: &Spec) -> TranspilerResult<String> {
-        // Placeholder: convert to JSON first
-        let json = self.to_json(spec)?;
-        Ok(format!("# TOML representation (placeholder)\n# {}", json))
+        toml::to_string(spec)
+            .map_err(|e| TranspilerError::Toml(format!("TOML serialization failed: {}", e)))
     }
 }
 
@@ -178,20 +214,24 @@ mod tests {
     }
 
     #[test]
-    fn test_to_yaml_placeholder() {
+    fn test_to_yaml() {
         let transpiler = Transpiler::new();
         let spec = create_test_spec();
         
         let yaml = transpiler.to_yaml(&spec).unwrap();
-        assert!(yaml.contains("YAML representation"));
+        assert!(yaml.contains("name: TestSpec"));
+        assert!(yaml.contains("major: 1"));
+        assert!(yaml.contains("minor: 0"));
     }
 
     #[test]
-    fn test_to_toml_placeholder() {
+    fn test_to_toml() {
         let transpiler = Transpiler::new();
         let spec = create_test_spec();
         
         let toml = transpiler.to_toml(&spec).unwrap();
-        assert!(toml.contains("TOML representation"));
+        assert!(toml.contains("name = \"TestSpec\""));
+        assert!(toml.contains("major = 1"));
+        assert!(toml.contains("minor = 0"));
     }
 }

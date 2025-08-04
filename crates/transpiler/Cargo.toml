@@ -11,6 +11,8 @@ description = "SIGMOS transpiler for export formats (json, yaml, etc.)"
 sigmos-core = { path = "../core" }
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml = "0.9"
+toml = "0.8"
 thiserror.workspace = true
 
 [dev-dependencies]
