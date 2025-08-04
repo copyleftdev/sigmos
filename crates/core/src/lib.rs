@@ -20,8 +20,7 @@
 //! "#;
 //!
 //! let spec = SigmosParser::parse_spec(input).unwrap();
-//! // Note: Current implementation returns placeholder values
-//! assert_eq!(spec.name, "PlaceholderSpec");
+//! assert_eq!(spec.name, "Agent");
 //! ```
 
 use pest_derive::Parser;
