@@ -154,7 +154,6 @@ impl TypeChecker {
 
         // Validate computed fields
         for computed in &spec.computed {
-            // TODO: Validate expressions
             self.validate_computed_field(computed)?;
         }
 
@@ -170,24 +169,254 @@ impl TypeChecker {
             )));
         }
 
-        // TODO: Validate modifiers
+        // Validate field modifiers
+        for modifier in &field.modifiers {
+            self.validate_modifier(modifier, &field.type_expr)?;
+        }
+        
         Ok(())
     }
 
     /// Validate a computed field
-    fn validate_computed_field(&self, _computed: &crate::ast::ComputedField) -> ParseResult<()> {
-        // TODO: Implement expression type checking
+    fn validate_computed_field(&self, computed: &crate::ast::ComputedField) -> ParseResult<()> {
+        // Create a type context for the computed field
+        let context = TypeContext::new();
+        
+        // Add input fields to the context (they can be referenced in computed expressions)
+        // Note: This would need the spec context, for now we'll do basic validation
+        
+        // Validate that the expression is well-formed
+        let _expr_type = self.type_of_expression(&computed.expression, &context)?;
+        
         Ok(())
     }
 
     /// Get the type of an expression in a given context
     pub fn type_of_expression(
         &self,
-        _expr: &crate::ast::Expression,
-        _context: &TypeContext,
+        expr: &crate::ast::Expression,
+        context: &TypeContext,
     ) -> ParseResult<TypeExpr> {
-        // TODO: Implement expression type inference
-        Ok(TypeExpr::Primitive(PrimitiveType::String))
+        use crate::ast::Expression;
+        
+        match expr {
+            Expression::StringLiteral(_) => Ok(TypeExpr::Primitive(PrimitiveType::String)),
+            Expression::Number(_) => Ok(TypeExpr::Primitive(PrimitiveType::Float)),
+            Expression::Boolean(_) => Ok(TypeExpr::Primitive(PrimitiveType::Bool)),
+            
+            Expression::Identifier(name) => {
+                if let Some(var_type) = context.get_variable_type(name) {
+                    Ok(var_type.clone())
+                } else {
+                    Err(ParseError::Type(format!("Undefined variable: {}", name)))
+                }
+            }
+            
+            Expression::FunctionCall { object, method, arguments: _ } => {
+                let func_name = format!("{}.{}", object, method);
+                if let Some(signature) = context.get_function(func_name.as_str()) {
+                    Ok(signature.return_type.clone())
+                } else {
+                    // For now, assume unknown functions return strings
+                    Ok(TypeExpr::Primitive(PrimitiveType::String))
+                }
+            }
+            
+            Expression::Add(left, right) | Expression::Subtract(left, right) |
+            Expression::Multiply(left, right) | Expression::Divide(left, right) => {
+                let left_type = self.type_of_expression(left, context)?;
+                let right_type = self.type_of_expression(right, context)?;
+                
+                // Simple type checking: both operands should be numeric
+                match (&left_type, &right_type) {
+                    (TypeExpr::Primitive(PrimitiveType::Int), TypeExpr::Primitive(PrimitiveType::Int)) =>
+                        Ok(TypeExpr::Primitive(PrimitiveType::Int)),
+                    (TypeExpr::Primitive(PrimitiveType::Float), _) |
+                    (_, TypeExpr::Primitive(PrimitiveType::Float)) =>
+                        Ok(TypeExpr::Primitive(PrimitiveType::Float)),
+                    _ => Err(ParseError::Type(format!(
+                        "Invalid operand types for arithmetic operation: {:?} and {:?}",
+                        left_type, right_type
+                    )))
+                }
+            }
+            
+            Expression::Equal(left, right) | Expression::NotEqual(left, right) |
+            Expression::LessThan(left, right) | Expression::LessThanOrEqual(left, right) |
+            Expression::GreaterThan(left, right) | Expression::GreaterThanOrEqual(left, right) => {
+                // Comparison operations return boolean
+                let _left_type = self.type_of_expression(left, context)?;
+                let _right_type = self.type_of_expression(right, context)?;
+                // TODO: Check that types are comparable
+                Ok(TypeExpr::Primitive(PrimitiveType::Bool))
+            }
+            
+            Expression::And(left, right) | Expression::Or(left, right) => {
+                let left_type = self.type_of_expression(left, context)?;
+                let right_type = self.type_of_expression(right, context)?;
+                
+                // Both operands should be boolean
+                match (&left_type, &right_type) {
+                    (TypeExpr::Primitive(PrimitiveType::Bool), TypeExpr::Primitive(PrimitiveType::Bool)) =>
+                        Ok(TypeExpr::Primitive(PrimitiveType::Bool)),
+                    _ => Err(ParseError::Type(format!(
+                        "Invalid operand types for logical operation: {:?} and {:?}",
+                        left_type, right_type
+                    )))
+                }
+            }
+            
+            Expression::Not(operand) => {
+                let operand_type = self.type_of_expression(operand, context)?;
+                match operand_type {
+                    TypeExpr::Primitive(PrimitiveType::Bool) => Ok(TypeExpr::Primitive(PrimitiveType::Bool)),
+                    _ => Err(ParseError::Type(format!(
+                        "Invalid operand type for logical NOT: {:?}", operand_type
+                    )))
+                }
+            }
+            
+            Expression::StringTemplate { parts: _ } => {
+                // String templates always result in strings
+                Ok(TypeExpr::Primitive(PrimitiveType::String))
+            }
+            
+            Expression::Modulo(left, right) => {
+                let left_type = self.type_of_expression(left, context)?;
+                let right_type = self.type_of_expression(right, context)?;
+                
+                // Modulo operation on numeric types
+                match (&left_type, &right_type) {
+                    (TypeExpr::Primitive(PrimitiveType::Int), TypeExpr::Primitive(PrimitiveType::Int)) =>
+                        Ok(TypeExpr::Primitive(PrimitiveType::Int)),
+                    (TypeExpr::Primitive(PrimitiveType::Float), _) |
+                    (_, TypeExpr::Primitive(PrimitiveType::Float)) =>
+                        Ok(TypeExpr::Primitive(PrimitiveType::Float)),
+                    _ => Err(ParseError::Type(format!(
+                        "Invalid operand types for modulo operation: {:?} and {:?}",
+                        left_type, right_type
+                    )))
+                }
+            }
+            
+            Expression::Conditional { condition, if_true, if_false } => {
+                let condition_type = self.type_of_expression(condition, context)?;
+                let then_type = self.type_of_expression(if_true, context)?;
+                let else_type = self.type_of_expression(if_false, context)?;
+                
+                // Condition must be boolean
+                if !matches!(condition_type, TypeExpr::Primitive(PrimitiveType::Bool)) {
+                    return Err(ParseError::Type(format!(
+                        "Conditional condition must be boolean, got: {:?}", condition_type
+                    )));
+                }
+                
+                // Both branches should have compatible types
+                if then_type == else_type {
+                    Ok(then_type)
+                } else {
+                    // For now, return the then_type (could be improved with type coercion)
+                    Ok(then_type)
+                }
+            }
+            
+            Expression::ArrayAccess(array_expr, index_expr) => {
+                let array_type = self.type_of_expression(array_expr, context)?;
+                let index_type = self.type_of_expression(index_expr, context)?;
+                
+                // Index should be integer
+                if !matches!(index_type, TypeExpr::Primitive(PrimitiveType::Int)) {
+                    return Err(ParseError::Type(format!(
+                        "Array index must be integer, got: {:?}", index_type
+                    )));
+                }
+                
+                // Extract element type from array type
+                match array_type {
+                    TypeExpr::Generic { name, args } if name == "Array" && args.len() == 1 => {
+                        Ok(args[0].clone())
+                    }
+                    _ => Err(ParseError::Type(format!(
+                        "Cannot index non-array type: {:?}", array_type
+                    )))
+                }
+            }
+            
+            Expression::PropertyAccess(object_expr, _property) => {
+                let _object_type = self.type_of_expression(object_expr, context)?;
+                // For now, assume property access returns string (would need struct/object type info)
+                Ok(TypeExpr::Primitive(PrimitiveType::String))
+            }
+        }
+    }
+    
+    /// Validate a field modifier
+    fn validate_modifier(&self, modifier: &crate::ast::Modifier, field_type: &TypeExpr) -> ParseResult<()> {
+        use crate::ast::Modifier;
+        
+        match modifier {
+            Modifier::Optional => {
+                // Optional modifier is always valid
+                Ok(())
+            }
+            
+            Modifier::Readonly => {
+                // Readonly modifier is always valid
+                Ok(())
+            }
+            
+            Modifier::Default(expr) => {
+                // Validate that the default expression type matches the field type
+                let context = TypeContext::new();
+                let expr_type = self.type_of_expression(expr, &context)?;
+                
+                if self.types_compatible(&expr_type, field_type) {
+                    Ok(())
+                } else {
+                    Err(ParseError::Type(format!(
+                        "Default value type {:?} does not match field type {:?}",
+                        expr_type, field_type
+                    )))
+                }
+            }
+            
+            Modifier::Computed => {
+                // Computed modifier is valid for computed fields
+                Ok(())
+            }
+            
+            Modifier::Secret => {
+                // Secret modifier is always valid (affects runtime behavior)
+                Ok(())
+            }
+            
+            Modifier::Generate => {
+                // Generate modifier is always valid (affects runtime behavior)
+                Ok(())
+            }
+            
+            Modifier::Ref(_ref_name) => {
+                // Reference modifier - would need to validate the reference exists
+                // For now, assume it's valid
+                Ok(())
+            }
+        }
+    }
+    
+    /// Check if two types are compatible (for assignment, default values, etc.)
+    fn types_compatible(&self, source_type: &TypeExpr, target_type: &TypeExpr) -> bool {
+        // Exact match
+        if source_type == target_type {
+            return true;
+        }
+        
+        // Numeric type compatibility
+        match (source_type, target_type) {
+            // Int can be assigned to Float
+            (TypeExpr::Primitive(PrimitiveType::Int), TypeExpr::Primitive(PrimitiveType::Float)) => true,
+            // Other cases would need more sophisticated type coercion rules
+            _ => false,
+        }
     }
 }
 
