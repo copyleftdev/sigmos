@@ -1,18 +1,11 @@
-//! Integration tests for SIGMOS
+//! Integration tests for SIGMOS CLI and example validation
 //!
-//! These tests verify that all components work together correctly,
-//! testing full workflows from parsing to execution.
+//! These tests verify that all example specifications are valid and can be parsed correctly.
+//! They ensure syntax, semantics, and structural integrity of all industry examples.
 
 use sigmos_core::{SigmosParser, ast::*};
-use sigmos_runtime::Runtime;
-use sigmos_plugins::{
-    registry::PluginRegistry,
-    mcp::{McpPlugin, McpConfig},
-    rest::{RestPlugin, RestConfig},
-    ConfigurablePlugin,
-};
-use std::collections::HashMap;
-use serde_json::Value as JsonValue;
+use std::fs;
+use std::path::Path;
 
 /// Test basic SIGMOS workflow: parse -> runtime -> execute
 #[test]

@@ -21,6 +21,52 @@ jobs:
       run: cargo test --workspace --verbose
     - name: Run doctests
       run: cargo test --workspace --doc --verbose
+    - name: Validate examples
+      run: |
+        echo "Validating SIGMOS examples structure..."
+        
+        # Check that examples directory exists and has files
+        if [ ! -d "examples" ]; then
+          echo "❌ Examples directory not found!"
+          exit 1
+        fi
+        
+        # Count and list example files
+        EXAMPLE_COUNT=$(find examples/ -name "*.sigmos" -type f | wc -l)
+        echo "Found $EXAMPLE_COUNT example files:"
+        find examples/ -name "*.sigmos" -type f | head -10
+        
+        # Ensure we have examples
+        if [ "$EXAMPLE_COUNT" -eq 0 ]; then
+          echo "❌ No example files found!"
+          exit 1
+        fi
+        
+        # Basic structure validation for each example
+        for file in $(find examples/ -name "*.sigmos" -type f); do
+          echo "Checking structure: $file"
+          
+          # Check file is not empty
+          if [ ! -s "$file" ]; then
+            echo "❌ Empty file: $file"
+            exit 1
+          fi
+          
+          # Check file contains basic SIGMOS structure
+          if ! grep -q "spec " "$file"; then
+            echo "❌ Missing spec declaration in: $file"
+            exit 1
+          fi
+          
+          if ! grep -q "description:" "$file"; then
+            echo "❌ Missing description in: $file"
+            exit 1
+          fi
+          
+          echo "✓ Structure valid: $file"
+        done
+        
+        echo "✓ All $EXAMPLE_COUNT examples have valid structure!"
 
   fmt:
     name: Rustfmt
