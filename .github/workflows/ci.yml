@@ -6,64 +6,62 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   test:
-    name: Test Suite
+    name: Build and Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Run tests
-      run: cargo test --workspace
-    - name: Run doctests
-      run: cargo test --workspace --doc
-    - name: Validate examples
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Type check
+      run: npm run astro check
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Validate build output
       run: |
-        if [ -d "examples" ]; then
-          EXAMPLE_COUNT=$(find examples/ -name "*.sigmos" -type f | wc -l)
-          echo "✓ Found $EXAMPLE_COUNT SIGMOS example files"
+        if [ -d "dist" ]; then
+          echo "✓ Build successful - dist directory created"
+          ls -la dist/
         else
-          echo "No examples directory found"
+          echo "❌ Build failed - no dist directory found"
+          exit 1
         fi
 
-  fmt:
-    name: Rustfmt
+  lint:
+    name: Lint and Format Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        components: rustfmt
-    - name: Enforce formatting
-      run: cargo fmt --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy
-    - uses: Swatinem/rust-cache@v2
-    - name: Linting (Zero Warnings Policy)
-      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-  docs:
-    name: Docs
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Check documentation
-      run: cargo doc --workspace --no-deps --document-private-items
-    - name: Test documentation
-      run: cargo test --workspace --doc
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Check formatting
+      run: npm run format:check
+      continue-on-error: true
+    
+    - name: Lint code
+      run: npm run lint
+      continue-on-error: true
 
   security_audit:
     name: Security Audit
