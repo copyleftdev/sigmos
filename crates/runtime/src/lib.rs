@@ -713,11 +713,33 @@ impl Runtime {
         let mut context = self.context.write().await;
         
         for field in &spec.inputs {
-            // TODO: Process field modifiers and validation
-            context.variables.insert(
-                field.name.clone(),
-                serde_json::Value::Null, // Placeholder
-            );
+            let mut field_value = serde_json::Value::Null;
+            
+            // Process field modifiers
+            for modifier in &field.modifiers {
+                match modifier {
+                    Modifier::Default(expr) => {
+                        // Evaluate default expression
+                        field_value = self.evaluate_expression(expr)?;
+                    }
+                    Modifier::Optional => {
+                        // Optional fields can remain null
+                    }
+                    Modifier::Secret => {
+                        // Mark as secret (affects logging/serialization)
+                        // For now, just process normally
+                    }
+                    Modifier::Generate => {
+                        // Generate a value based on type
+                        field_value = self.generate_value_for_type(&field.type_expr)?;
+                    }
+                    _ => {
+                        // Other modifiers don't affect initial value
+                    }
+                }
+            }
+            
+            context.variables.insert(field.name.clone(), field_value);
         }
         
         Ok(())
@@ -725,29 +747,119 @@ impl Runtime {
 
     /// Compute derived fields
     async fn compute_fields(&self, spec: &Spec) -> RuntimeResult<()> {
-        let mut context = self.context.write().await;
+        let context_read = self.context.read().await;
+        let variable_context = context_read.variables.clone();
+        drop(context_read);
+        
+        let mut computed_values = HashMap::new();
         
         for computed in &spec.computed {
-            // TODO: Evaluate expression
-            context.computed_cache.insert(
-                computed.name.clone(),
-                serde_json::Value::String("computed".to_string()), // Placeholder
-            );
+            // Evaluate the computed expression with current variable context
+            let computed_value = self.evaluate_expression_with_context(
+                &computed.expression,
+                &variable_context
+            )?;
+            
+            computed_values.insert(computed.name.clone(), computed_value);
+        }
+        
+        // Update the computed cache
+        let mut context = self.context.write().await;
+        for (name, value) in computed_values {
+            context.computed_cache.insert(name, value);
         }
         
         Ok(())
     }
 
     /// Execute lifecycle before phase
-    async fn execute_lifecycle_before(&self, _spec: &Spec) -> RuntimeResult<()> {
-        // TODO: Implement lifecycle before execution
+    async fn execute_lifecycle_before(&self, spec: &Spec) -> RuntimeResult<()> {
+        for lifecycle in &spec.lifecycle {
+            if matches!(lifecycle.phase, LifecyclePhase::Before) {
+                // Execute the lifecycle action
+                match &lifecycle.action {
+                    Action::FunctionCall { object, method, arguments } => {
+                        let context_read = self.context.read().await;
+                        let variable_context = context_read.variables.clone();
+                        drop(context_read);
+                        
+                        self.evaluate_function_call(object, method, arguments, &variable_context)?;
+                    }
+                    Action::Identifier(name) => {
+                        // Execute identifier as a function call with no arguments
+                        let context_read = self.context.read().await;
+                        let variable_context = context_read.variables.clone();
+                        drop(context_read);
+                        
+                        // For now, treat identifier as a simple function call
+                        let empty_args = vec![];
+                        self.evaluate_function_call("builtin", name, &empty_args, &variable_context)?;
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
     /// Execute lifecycle after phase
-    async fn execute_lifecycle_after(&self, _spec: &Spec) -> RuntimeResult<()> {
-        // TODO: Implement lifecycle after execution
+    async fn execute_lifecycle_after(&self, spec: &Spec) -> RuntimeResult<()> {
+        for lifecycle in &spec.lifecycle {
+            if matches!(lifecycle.phase, LifecyclePhase::After) {
+                // Execute the lifecycle action
+                match &lifecycle.action {
+                    Action::FunctionCall { object, method, arguments } => {
+                        let context_read = self.context.read().await;
+                        let variable_context = context_read.variables.clone();
+                        drop(context_read);
+                        
+                        self.evaluate_function_call(object, method, arguments, &variable_context)?;
+                    }
+                    Action::Identifier(name) => {
+                        // Execute identifier as a function call with no arguments
+                        let context_read = self.context.read().await;
+                        let variable_context = context_read.variables.clone();
+                        drop(context_read);
+                        
+                        // For now, treat identifier as a simple function call
+                        let empty_args = vec![];
+                        self.evaluate_function_call("builtin", name, &empty_args, &variable_context)?;
+                    }
+                }
+            }
+        }
         Ok(())
+    }
+    
+    /// Generate a default value for a given type
+    fn generate_value_for_type(&self, type_expr: &TypeExpr) -> RuntimeResult<JsonValue> {
+        match type_expr {
+            TypeExpr::Primitive(PrimitiveType::String) => {
+                Ok(JsonValue::String("generated".to_string()))
+            }
+            TypeExpr::Primitive(PrimitiveType::Int) => {
+                Ok(JsonValue::Number(serde_json::Number::from(0)))
+            }
+            TypeExpr::Primitive(PrimitiveType::Float) => {
+                Ok(JsonValue::Number(serde_json::Number::from_f64(0.0).unwrap()))
+            }
+            TypeExpr::Primitive(PrimitiveType::Bool) => {
+                Ok(JsonValue::Bool(false))
+            }
+            TypeExpr::Primitive(PrimitiveType::Null) => {
+                Ok(JsonValue::Null)
+            }
+            TypeExpr::Generic { name, args: _ } => {
+                match name.as_str() {
+                    "Array" => Ok(JsonValue::Array(vec![])),
+                    "Map" => Ok(JsonValue::Object(serde_json::Map::new())),
+                    _ => Ok(JsonValue::Null)
+                }
+            }
+            TypeExpr::Reference(_) => {
+                // For user-defined types, generate null for now
+                Ok(JsonValue::Null)
+            }
+        }
     }
 }
 
