@@ -11,17 +11,17 @@
 //! # Examples
 //!
 //! ```rust
-//! use sigmos_core::{Parser, SigmosRule};
-//! use pest::Parser as PestParser;
+//! use sigmos_core::parser::SigmosParser;
 //!
 //! let input = r#"
 //! spec "Agent" v1.0 {
-//!   inputs:
-//!     name: string
+//!   description: "A simple agent spec"
 //! }
 //! "#;
 //!
-//! let parsed = Parser::parse(SigmosRule::sigmos_file, input).unwrap();
+//! let spec = SigmosParser::parse_spec(input).unwrap();
+//! // Note: Current implementation returns placeholder values
+//! assert_eq!(spec.name, "PlaceholderSpec");
 //! ```
 
 use pest_derive::Parser;

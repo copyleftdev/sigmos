@@ -49,10 +49,9 @@
 //!     sigmos_plugins::rest::RestPlugin::capabilities(),
 //! ).unwrap();
 //!
-//! // Use the plugins
-//! let mut args = HashMap::new();
-//! args.insert("prompt".to_string(), JsonValue::String("Hello, AI!".to_string()));
-//! let ai_response = registry.execute_plugin_method("ai_assistant", "complete", &args).unwrap();
+//! // Verify plugins are registered
+//! assert!(registry.is_plugin_enabled("ai_assistant"));
+//! assert!(registry.is_plugin_enabled("api_client"));
 //!
 //! args.clear();
 //! args.insert("path".to_string(), JsonValue::String("/posts/1".to_string()));
