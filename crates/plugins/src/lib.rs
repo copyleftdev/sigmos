@@ -50,12 +50,16 @@
 //! ).unwrap();
 //!
 //! // Verify plugins are registered
-//! assert!(registry.is_plugin_enabled("ai_assistant"));
-//! assert!(registry.is_plugin_enabled("api_client"));
+//! assert!(registry.is_plugin_enabled("mcp"));
+//! assert!(registry.is_plugin_enabled("rest"));
 //!
-//! args.clear();
+//! // Initialize all plugins
+//! registry.initialize_all().unwrap();
+//!
+//! // Execute plugin method with arguments
+//! let mut args = HashMap::new();
 //! args.insert("path".to_string(), JsonValue::String("/posts/1".to_string()));
-//! let api_response = registry.execute_plugin_method("api_client", "get", &args).unwrap();
+//! let api_response = registry.execute_plugin_method("rest", "get", &args).unwrap();
 //! ```
 
 use sigmos_runtime::Plugin;
