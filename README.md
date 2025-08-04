@@ -1,6 +1,10 @@
-# SIGMOS: Sigma Modular Operating Spec
-
-A next-generation Domain-Specific Language (DSL) designed to define, orchestrate, and execute AI-native, composable, reactive, and multimodal systems.
+<div align="center">
+  <img src="media/logo.png" alt="SIGMOS Logo" width="200" height="200">
+  
+  # SIGMOS: Sigma Modular Operating Spec
+  
+  *A next-generation Domain-Specific Language (DSL) designed to define, orchestrate, and execute AI-native, composable, reactive, and multimodal systems.*
+</div>
 
 ## 🚀 Features
 
