@@ -173,12 +173,16 @@ impl SigmosParser {
                         if let Ok(f) = number_str.parse::<f64>() {
                             tokens.push(Token::FloatLiteral(f));
                         } else {
-                            return Err(ParseError::Grammar(format!("Invalid float literal: {number_str}")));
+                            return Err(ParseError::Grammar(format!(
+                                "Invalid float literal: {number_str}"
+                            )));
                         }
                     } else if let Ok(i) = number_str.parse::<i64>() {
                         tokens.push(Token::IntLiteral(i));
                     } else {
-                        return Err(ParseError::Grammar(format!("Invalid integer literal: {number_str}")));
+                        return Err(ParseError::Grammar(format!(
+                            "Invalid integer literal: {number_str}"
+                        )));
                     }
                 }
 

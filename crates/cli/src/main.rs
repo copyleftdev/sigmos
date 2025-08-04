@@ -19,7 +19,6 @@ use sigmos_runtime::Runtime;
 use sigmos_transpiler::Transpiler;
 use std::path::PathBuf;
 
-
 /// SIGMOS: Sigma Modular Operating Spec CLI
 #[derive(Parser)]
 #[command(name = "sigmos")]
@@ -256,9 +255,7 @@ async fn install_registry_plugin(plugin_name: &str) -> Result<()> {
     // Check if it's a known built-in plugin
     match plugin_name {
         "mcp" | "rest" => {
-            println!(
-                "✓ Plugin '{plugin_name}' is already available as a built-in plugin."
-            );
+            println!("✓ Plugin '{plugin_name}' is already available as a built-in plugin.");
             println!("You can use it directly in your SIGMOS specifications.");
             return Ok(());
         }

@@ -161,7 +161,9 @@ impl Plugin for RestPlugin {
             "head" => rt.block_on(self.http_request(HttpMethod::HEAD, args)),
             "options" => rt.block_on(self.http_request(HttpMethod::OPTIONS, args)),
             "request" => self.generic_request(args),
-            _ => Err(RuntimeError::Plugin(format!("Unknown REST method: {method}"))),
+            _ => Err(RuntimeError::Plugin(format!(
+                "Unknown REST method: {method}"
+            ))),
         }
     }
 }
@@ -257,8 +259,8 @@ impl RestPlugin {
             .map_err(|e| RuntimeError::Plugin(format!("Failed to read response body: {e}")))?;
 
         // Try to parse as JSON, fallback to string
-        let body_json = serde_json::from_str::<JsonValue>(&body_text)
-            .unwrap_or(JsonValue::String(body_text));
+        let body_json =
+            serde_json::from_str::<JsonValue>(&body_text).unwrap_or(JsonValue::String(body_text));
 
         Ok(JsonValue::Object({
             let mut obj = serde_json::Map::new();
@@ -290,7 +292,9 @@ impl RestPlugin {
             "HEAD" => HttpMethod::HEAD,
             "OPTIONS" => HttpMethod::OPTIONS,
             _ => {
-                return Err(RuntimeError::Plugin(format!("Unsupported HTTP method: {method_str}")))
+                return Err(RuntimeError::Plugin(format!(
+                    "Unsupported HTTP method: {method_str}"
+                )))
             }
         };
 

@@ -30,7 +30,6 @@
 //! let json = transpiler.to_json(&spec).unwrap();
 //! ```
 
-
 use sigmos_core::ast::Spec;
 use thiserror::Error;
 
@@ -204,7 +203,7 @@ mod tests {
     #[test]
     fn test_transpiler_creation() {
         let transpiler = Transpiler::new();
-        assert!(format!("{:?}", transpiler).contains("Transpiler"));
+        assert!(format!("{transpiler:?}").contains("Transpiler"));
     }
 
     #[test]

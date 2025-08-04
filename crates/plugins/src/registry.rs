@@ -53,7 +53,9 @@ impl PluginRegistry {
         let name = metadata.name.clone();
 
         if self.plugins.contains_key(&name) {
-            return Err(PluginError::InitializationFailed(format!("Plugin '{name}' is already registered")));
+            return Err(PluginError::InitializationFailed(format!(
+                "Plugin '{name}' is already registered"
+            )));
         }
 
         let entry = PluginEntry {
@@ -84,7 +86,9 @@ impl PluginRegistry {
         // Register aliases
         for alias in aliases {
             if self.aliases.contains_key(&alias) || self.plugins.contains_key(&alias) {
-                return Err(PluginError::InitializationFailed(format!("Alias '{alias}' is already in use")));
+                return Err(PluginError::InitializationFailed(format!(
+                    "Alias '{alias}' is already in use"
+                )));
             }
             self.aliases.insert(alias, name.clone());
         }
@@ -119,7 +123,9 @@ impl PluginRegistry {
         })?;
 
         if !entry.enabled {
-            return Err(sigmos_runtime::RuntimeError::Plugin(format!("Plugin '{plugin_name}' is disabled")));
+            return Err(sigmos_runtime::RuntimeError::Plugin(format!(
+                "Plugin '{plugin_name}' is disabled"
+            )));
         }
 
         let plugin = entry.plugin.read().map_err(|_| {
@@ -137,7 +143,9 @@ impl PluginRegistry {
             entry.enabled = true;
             Ok(())
         } else {
-            Err(PluginError::ExecutionFailed(format!("Plugin '{name}' not found")))
+            Err(PluginError::ExecutionFailed(format!(
+                "Plugin '{name}' not found"
+            )))
         }
     }
 
@@ -149,7 +157,9 @@ impl PluginRegistry {
             entry.enabled = false;
             Ok(())
         } else {
-            Err(PluginError::ExecutionFailed(format!("Plugin '{name}' not found")))
+            Err(PluginError::ExecutionFailed(format!(
+                "Plugin '{name}' not found"
+            )))
         }
     }
 
@@ -163,7 +173,9 @@ impl PluginRegistry {
                 .retain(|_, plugin_name| plugin_name != &real_name);
             Ok(())
         } else {
-            Err(PluginError::ExecutionFailed(format!("Plugin '{name}' not found")))
+            Err(PluginError::ExecutionFailed(format!(
+                "Plugin '{name}' not found"
+            )))
         }
     }
 

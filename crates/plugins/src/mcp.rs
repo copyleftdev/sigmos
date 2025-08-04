@@ -120,7 +120,9 @@ impl Plugin for McpPlugin {
             "embed" => self.embed(args),
             "chat" => self.chat(args),
             "analyze" => self.analyze(args),
-            _ => Err(RuntimeError::Plugin(format!("Unknown MCP method: {method}"))),
+            _ => Err(RuntimeError::Plugin(format!(
+                "Unknown MCP method: {method}"
+            ))),
         }
     }
 }
