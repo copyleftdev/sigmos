@@ -21,11 +21,13 @@
 //! # });
 //! ```
 
-use sigmos_core::ast::Spec;
-use thiserror::Error;
-use tokio::sync::RwLock;
+use sigmos_core::ast::*;
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;
+use thiserror::Error;
+use tokio::sync::RwLock;
+
 
 pub mod engine;
 pub mod events;
@@ -39,6 +41,8 @@ pub enum RuntimeError {
     Execution(String),
     #[error("Plugin error: {0}")]
     Plugin(String),
+    #[error("Expression evaluation error: {0}")]
+    Evaluation(String),
     #[error("Event handling error: {0}")]
     Event(String),
     #[error("Lifecycle error: {0}")]
@@ -195,6 +199,47 @@ impl Runtime {
         let name = plugin.name().to_string();
         self.plugins.insert(name, plugin);
     }
+
+    /// Evaluate an expression in the current context
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use sigmos_runtime::Runtime;
+    /// use sigmos_core::ast::Expression;
+    ///
+    /// let runtime = Runtime::new();
+    /// let expr = Expression::StringLiteral("Hello World".to_string());
+    /// let result = runtime.evaluate_expression(&expr).unwrap();
+    /// ```
+    pub fn evaluate_expression(&self, expr: &Expression) -> RuntimeResult<JsonValue> {
+        match expr {
+            Expression::StringLiteral(s) => Ok(JsonValue::String(s.clone())),
+            Expression::Number(n) => Ok(JsonValue::Number(serde_json::Number::from_f64(*n).unwrap())),
+            Expression::Boolean(b) => Ok(JsonValue::Bool(*b)),
+            Expression::Identifier(name) => {
+                // For now, return a placeholder - will be enhanced later
+                Ok(JsonValue::String(format!("${{{}}}", name)))
+            },
+            Expression::FunctionCall { object, method, arguments: _ } => {
+                let function_name = if object.is_empty() {
+                    method.clone()
+                } else {
+                    format!("{}.{}", object, method)
+                };
+                // For now, return a placeholder - will be enhanced later
+                Ok(JsonValue::String(format!("{}()", function_name)))
+            },
+            Expression::StringTemplate { parts: _ } => {
+                // For now, return a placeholder - will be enhanced later
+                Ok(JsonValue::String("template".to_string()))
+            },
+        }
+    }
+
+
+
+
 
     /// Process input fields
     async fn process_inputs(&self, spec: &Spec) -> RuntimeResult<()> {
