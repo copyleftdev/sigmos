@@ -1,0 +1,99 @@
+spec "TradingSystem" v2.1 {
+  description: "High-frequency trading system with risk management and compliance."
+
+  inputs:
+    trader_id: string { validate: /^[A-Z]{2}[0-9]{6}$/ }
+    account_balance: float { default: 100000.0, secret: true }
+    risk_tolerance: enum("conservative", "moderate", "aggressive")
+    max_position_size: float { default: 0.05 }
+    trading_pairs: array<string> { default: ["BTC/USD", "ETH/USD"] }
+    api_credentials: object {
+      key: string { secret: true }
+      secret: string { secret: true }
+      passphrase: string { secret: true, optional: true }
+    }
+    compliance_region: enum("US", "EU", "APAC") { default: "US" }
+
+  computed:
+    max_trade_amount: -> account_balance * max_position_size
+    risk_multiplier: -> match(risk_tolerance) {
+      "conservative" => 0.5,
+      "moderate" => 1.0,
+      "aggressive" => 2.0
+    }
+    effective_position_limit: -> max_trade_amount * risk_multiplier
+    compliance_rules: -> rest.get("https://api.compliance.com/rules", {
+      headers: { "Region": compliance_region },
+      auth: api_credentials
+    })
+
+  events:
+    on_trade_signal(signal): {
+      // Risk assessment
+      if (signal.amount > effective_position_limit) {
+        log("Trade rejected: exceeds position limit")
+        return false
+      }
+      
+      // Compliance check
+      mcp.call("compliance.validate", {
+        trade: signal,
+        rules: compliance_rules,
+        trader: trader_id
+      })
+    }
+
+    on_market_data(data): {
+      // Real-time risk monitoring
+      if (data.volatility > 0.15) {
+        mcp.call("risk.alert", {
+          level: "HIGH",
+          message: "Market volatility spike detected",
+          trader: trader_id
+        })
+      }
+    }
+
+    on_position_change(position): {
+      // Portfolio rebalancing
+      rest.post("https://api.portfolio.com/rebalance", {
+        body: {
+          trader_id: trader_id,
+          new_position: position,
+          timestamp: now()
+        },
+        headers: { "Authorization": "Bearer " + api_credentials.key }
+      })
+    }
+
+  constraints:
+    assert account_balance > 1000.0
+    ensure max_position_size <= 0.2
+    assert len(trading_pairs) > 0
+    ensure trader_id matches /^[A-Z]{2}[0-9]{6}$/
+    assert effective_position_limit <= account_balance * 0.5
+
+  lifecycle:
+    before: {
+      // Initialize trading session
+      mcp.call("session.init", {
+        trader: trader_id,
+        timestamp: now(),
+        region: compliance_region
+      })
+    }
+    
+    after: {
+      log("Trading system initialized for trader {{trader_id}}")
+      // Start market data feed
+      rest.post("https://api.market.com/subscribe", {
+        body: { pairs: trading_pairs, trader: trader_id }
+      })
+    }
+    
+    finally: {
+      // Cleanup and session close
+      mcp.call("session.close", { trader: trader_id })
+      log("Trading session closed for {{trader_id}}")
+    }
+}

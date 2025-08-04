@@ -1,0 +1,184 @@
+spec "PatientMonitoring" v1.5 {
+  description: "Real-time patient vital signs monitoring with AI-powered anomaly detection."
+
+  inputs:
+    patient_id: string { validate: /^P[0-9]{8}$/ }
+    patient_name: string
+    age: int { validate: age >= 0 && age <= 150 }
+    medical_conditions: array<string> { default: [] }
+    emergency_contact: object {
+      name: string
+      phone: string { validate: /^\+?[1-9]\d{1,14}$/ }
+      relationship: string
+    }
+    monitoring_frequency: int { default: 60, description: "seconds between readings" }
+    alert_thresholds: object {
+      heart_rate_min: int { default: 60 }
+      heart_rate_max: int { default: 100 }
+      blood_pressure_systolic_max: int { default: 140 }
+      blood_pressure_diastolic_max: int { default: 90 }
+      temperature_max: float { default: 38.0 }
+      oxygen_saturation_min: int { default: 95 }
+    }
+    physician_id: string { validate: /^DR[0-9]{6}$/ }
+
+  computed:
+    risk_level: -> mcp.call("ai.assess_risk", {
+      age: age,
+      conditions: medical_conditions,
+      vitals: current_vitals
+    })
+    
+    alert_priority: -> match(risk_level) {
+      "LOW" => "info",
+      "MEDIUM" => "warning", 
+      "HIGH" => "critical",
+      "CRITICAL" => "emergency"
+    }
+    
+    monitoring_protocol: -> if (len(medical_conditions) > 0) {
+      rest.get("https://api.medical.com/protocols", {
+        params: { conditions: join(medical_conditions, ",") },
+        headers: { "Authorization": "Bearer " + system.medical_api_key }
+      })
+    } else {
+      { protocol: "standard", frequency: monitoring_frequency }
+    }
+
+  events:
+    on_vital_reading(vitals): {
+      // Store reading in medical database
+      rest.post("https://api.hospital.com/vitals", {
+        body: {
+          patient_id: patient_id,
+          timestamp: now(),
+          readings: vitals,
+          device_id: vitals.device_id
+        },
+        headers: { 
+          "Authorization": "Bearer " + system.hospital_api_key,
+          "Content-Type": "application/json"
+        }
+      })
+      
+      // Check for anomalies using AI
+      let anomaly_result = mcp.call("ai.detect_anomaly", {
+        patient_id: patient_id,
+        current_vitals: vitals,
+        historical_data: get_patient_history(patient_id, "7d"),
+        medical_conditions: medical_conditions
+      })
+      
+      if (anomaly_result.is_anomaly) {
+        trigger_alert(anomaly_result.severity, anomaly_result.description)
+      }
+    }
+
+    on_critical_alert(alert): {
+      // Immediate physician notification
+      rest.post("https://api.notification.com/emergency", {
+        body: {
+          recipient: physician_id,
+          patient: patient_id,
+          alert_type: "CRITICAL_VITALS",
+          message: "Patient {{patient_name}} ({{patient_id}}) requires immediate attention: {{alert.message}}",
+          priority: "URGENT"
+        }
+      })
+      
+      // Emergency contact notification
+      rest.post("https://api.sms.com/send", {
+        body: {
+          to: emergency_contact.phone,
+          message: "MEDICAL ALERT: {{patient_name}} is experiencing a medical situation. Hospital staff have been notified."
+        }
+      })
+      
+      // Log critical event
+      mcp.call("audit.log", {
+        event_type: "CRITICAL_ALERT",
+        patient_id: patient_id,
+        alert_details: alert,
+        timestamp: now(),
+        response_time: system.response_time
+      })
+    }
+
+    on_medication_time(medication): {
+      // Medication reminder and compliance tracking
+      rest.post("https://api.nurse-station.com/medication-reminder", {
+        body: {
+          patient_id: patient_id,
+          medication: medication.name,
+          dosage: medication.dosage,
+          scheduled_time: medication.time,
+          room_number: get_patient_room(patient_id)
+        }
+      })
+    }
+
+  constraints:
+    assert len(patient_id) == 9
+    ensure age >= 0 && age <= 150
+    assert len(emergency_contact.phone) >= 10
+    ensure monitoring_frequency >= 30 && monitoring_frequency <= 3600
+    assert alert_thresholds.heart_rate_min < alert_thresholds.heart_rate_max
+    assert alert_thresholds.blood_pressure_systolic_max > 90
+    assert alert_thresholds.temperature_max >= 35.0 && alert_thresholds.temperature_max <= 45.0
+    ensure alert_thresholds.oxygen_saturation_min >= 80 && alert_thresholds.oxygen_saturation_min <= 100
+
+  lifecycle:
+    before: {
+      // Initialize patient monitoring session
+      mcp.call("hospital.init_monitoring", {
+        patient_id: patient_id,
+        physician_id: physician_id,
+        start_time: now(),
+        protocol: monitoring_protocol
+      })
+      
+      // Verify medical device connectivity
+      rest.get("https://api.devices.com/status", {
+        params: { patient_id: patient_id }
+      })
+    }
+    
+    after: {
+      log("Patient monitoring initiated for {{patient_name}} ({{patient_id}})")
+      
+      // Start continuous monitoring
+      rest.post("https://api.monitoring.com/start", {
+        body: {
+          patient_id: patient_id,
+          frequency: monitoring_frequency,
+          thresholds: alert_thresholds,
+          ai_enabled: true
+        }
+      })
+      
+      // Notify nursing staff
+      rest.post("https://api.nurse-station.com/patient-assigned", {
+        body: {
+          patient_id: patient_id,
+          patient_name: patient_name,
+          risk_level: risk_level,
+          special_instructions: if (len(medical_conditions) > 0) {
+            "Patient has medical conditions: " + join(medical_conditions, ", ")
+          } else {
+            "Standard monitoring protocol"
+          }
+        }
+      })
+    }
+    
+    finally: {
+      // End monitoring session
+      mcp.call("hospital.end_monitoring", {
+        patient_id: patient_id,
+        end_time: now(),
+        session_summary: get_session_summary(patient_id)
+      })
+      
+      log("Monitoring session ended for patient {{patient_id}}")
+    }
+}

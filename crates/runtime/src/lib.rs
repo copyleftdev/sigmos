@@ -902,7 +902,7 @@ impl Default for Runtime {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sigmos_core::ast::{Spec, Field, TypeExpr, PrimitiveType};
+    use sigmos_core::ast::{Spec, Version};
 
     #[tokio::test]
     async fn test_runtime_creation() {

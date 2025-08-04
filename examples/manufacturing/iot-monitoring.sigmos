@@ -1,0 +1,309 @@
+spec "ManufacturingIoTMonitoring" v2.3 {
+  description: "Industrial IoT monitoring system for predictive maintenance and quality control."
+
+  inputs:
+    facility_id: string { validate: /^FAC[0-9]{5}$/ }
+    production_line: string
+    equipment_registry: array<object> {
+      schema: {
+        equipment_id: string,
+        type: enum("conveyor", "robot", "sensor", "press", "furnace", "pump"),
+        location: string,
+        maintenance_schedule: string,
+        critical_level: enum("low", "medium", "high", "critical")
+      }
+    }
+    quality_thresholds: object {
+      temperature_max: float { default: 85.0 }
+      vibration_max: float { default: 10.0 }
+      pressure_max: float { default: 150.0 }
+      humidity_max: float { default: 70.0 }
+      noise_level_max: float { default: 85.0 }
+    }
+    production_targets: object {
+      daily_output: int
+      quality_rate: float { default: 0.98 }
+      efficiency_target: float { default: 0.85 }
+      downtime_max: int { default: 120, description: "minutes per day" }
+    }
+    maintenance_team: array<object> {
+      schema: {
+        technician_id: string,
+        specialization: array<string>,
+        shift: enum("morning", "afternoon", "night"),
+        contact: string
+      }
+    }
+    ai_models: object {
+      predictive_maintenance: string { default: "pm_model_v2.1" }
+      quality_prediction: string { default: "qc_model_v1.8" }
+      anomaly_detection: string { default: "anomaly_v3.0" }
+    }
+
+  computed:
+    equipment_health_scores: -> mcp.call("ai.calculate_health_scores", {
+      equipment_data: get_real_time_data(equipment_registry),
+      historical_patterns: get_equipment_history(facility_id, "30d"),
+      model: ai_models.predictive_maintenance
+    })
+    
+    maintenance_predictions: -> mcp.call("ai.predict_maintenance", {
+      equipment_health: equipment_health_scores,
+      maintenance_history: get_maintenance_records(facility_id, "90d"),
+      current_workload: get_production_schedule(production_line)
+    })
+    
+    quality_forecast: -> mcp.call("ai.predict_quality", {
+      current_conditions: get_environmental_data(),
+      equipment_status: equipment_health_scores,
+      production_parameters: get_production_settings(),
+      model: ai_models.quality_prediction
+    })
+    
+    optimal_production_schedule: -> mcp.call("ai.optimize_schedule", {
+      maintenance_windows: maintenance_predictions,
+      quality_forecast: quality_forecast,
+      production_targets: production_targets,
+      equipment_availability: calculate_availability()
+    })
+
+  events:
+    on_sensor_reading(sensor_data): {
+      // Real-time anomaly detection
+      let anomaly_result = mcp.call("ai.detect_anomaly", {
+        sensor_data: sensor_data,
+        equipment_id: sensor_data.equipment_id,
+        baseline_data: get_baseline_metrics(sensor_data.equipment_id),
+        model: ai_models.anomaly_detection
+      })
+      
+      if (anomaly_result.is_anomaly) {
+        // Immediate alert for critical anomalies
+        if (anomaly_result.severity == "critical") {
+          rest.post("https://api.alerts.com/emergency", {
+            body: {
+              facility_id: facility_id,
+              equipment_id: sensor_data.equipment_id,
+              alert_type: "CRITICAL_ANOMALY",
+              description: anomaly_result.description,
+              recommended_action: anomaly_result.action,
+              timestamp: now()
+            }
+          })
+          
+          // Auto-shutdown for safety-critical equipment
+          if (get_equipment_type(sensor_data.equipment_id) in ["furnace", "press"]) {
+            rest.post("https://api.control.com/emergency-stop", {
+              body: {
+                equipment_id: sensor_data.equipment_id,
+                reason: "Critical anomaly detected",
+                initiated_by: "AI_SYSTEM"
+              }
+            })
+          }
+        }
+      }
+      
+      // Store sensor data for analysis
+      rest.post("https://api.timeseries.com/ingest", {
+        body: {
+          facility_id: facility_id,
+          timestamp: sensor_data.timestamp,
+          measurements: sensor_data.readings,
+          equipment_id: sensor_data.equipment_id
+        }
+      })
+    }
+
+    on_quality_check(quality_data): {
+      // Quality control analysis
+      let quality_analysis = mcp.call("ai.analyze_quality", {
+        quality_metrics: quality_data,
+        production_batch: quality_data.batch_id,
+        equipment_conditions: get_equipment_state(quality_data.timestamp),
+        environmental_factors: get_environmental_data(quality_data.timestamp)
+      })
+      
+      if (quality_analysis.defect_probability > 0.15) {
+        // Alert quality control team
+        rest.post("https://api.notification.com/quality-alert", {
+          body: {
+            facility_id: facility_id,
+            batch_id: quality_data.batch_id,
+            defect_probability: quality_analysis.defect_probability,
+            root_cause_analysis: quality_analysis.root_causes,
+            recommended_adjustments: quality_analysis.adjustments
+          }
+        })
+        
+        // Auto-adjust production parameters if confidence is high
+        if (quality_analysis.confidence > 0.9) {
+          rest.post("https://api.control.com/adjust-parameters", {
+            body: {
+              production_line: production_line,
+              adjustments: quality_analysis.adjustments,
+              reason: "AI quality optimization"
+            }
+          })
+        }
+      }
+    }
+
+    on_maintenance_due(equipment): {
+      // Intelligent maintenance scheduling
+      let optimal_window = mcp.call("ai.find_maintenance_window", {
+        equipment_id: equipment.id,
+        maintenance_type: equipment.maintenance_type,
+        production_schedule: get_production_schedule(production_line, "7d"),
+        technician_availability: get_technician_schedule(maintenance_team)
+      })
+      
+      // Schedule maintenance
+      rest.post("https://api.maintenance.com/schedule", {
+        body: {
+          equipment_id: equipment.id,
+          maintenance_window: optimal_window,
+          assigned_technician: optimal_window.recommended_technician,
+          priority: equipment.critical_level,
+          estimated_duration: optimal_window.duration
+        }
+      })
+      
+      // Order parts if needed
+      let parts_needed = mcp.call("maintenance.get_required_parts", {
+        equipment_id: equipment.id,
+        maintenance_type: equipment.maintenance_type
+      })
+      
+      if (len(parts_needed) > 0) {
+        rest.post("https://api.inventory.com/order-parts", {
+          body: {
+            parts: parts_needed,
+            delivery_date: optimal_window.start_date,
+            facility_id: facility_id,
+            urgency: equipment.critical_level
+          }
+        })
+      }
+    }
+
+    on_production_shift_change(shift_data): {
+      // Shift handover and optimization
+      let shift_summary = mcp.call("analytics.generate_shift_summary", {
+        facility_id: facility_id,
+        shift_period: shift_data.period,
+        production_metrics: get_shift_metrics(shift_data.period),
+        equipment_performance: equipment_health_scores
+      })
+      
+      // Brief incoming shift
+      rest.post("https://api.communication.com/shift-briefing", {
+        body: {
+          incoming_shift: shift_data.incoming_team,
+          summary: shift_summary,
+          priority_items: shift_summary.priority_actions,
+          equipment_status: get_critical_equipment_status()
+        }
+      })
+      
+      // Optimize for new shift
+      rest.post("https://api.optimization.com/shift-optimization", {
+        body: {
+          shift_team: shift_data.incoming_team,
+          production_targets: production_targets,
+          equipment_availability: calculate_availability(),
+          predicted_issues: maintenance_predictions
+        }
+      })
+    }
+
+  constraints:
+    assert len(facility_id) == 8
+    ensure len(equipment_registry) > 0
+    assert production_targets.quality_rate >= 0.8 && production_targets.quality_rate <= 1.0
+    ensure production_targets.efficiency_target >= 0.5 && production_targets.efficiency_target <= 1.0
+    assert quality_thresholds.temperature_max > 0
+    ensure quality_thresholds.vibration_max > 0
+    assert len(maintenance_team) > 0
+
+  lifecycle:
+    before: {
+      // Initialize monitoring systems
+      mcp.call("facility.init_monitoring", {
+        facility_id: facility_id,
+        production_line: production_line,
+        equipment_count: len(equipment_registry),
+        monitoring_start: now()
+      })
+      
+      // Calibrate sensors
+      rest.post("https://api.sensors.com/calibrate", {
+        body: {
+          facility_id: facility_id,
+          equipment_ids: equipment_registry.map(e => e.equipment_id),
+          calibration_standards: quality_thresholds
+        }
+      })
+      
+      // Load AI models
+      mcp.call("ai.load_models", {
+        models: ai_models,
+        facility_context: facility_id
+      })
+    }
+    
+    after: {
+      log("IoT monitoring system initialized for facility {{facility_id}}, line {{production_line}}")
+      
+      // Start real-time data collection
+      rest.post("https://api.data-collection.com/start", {
+        body: {
+          facility_id: facility_id,
+          equipment_registry: equipment_registry,
+          sampling_rate: 5, // seconds
+          data_retention: "1y"
+        }
+      })
+      
+      // Initialize dashboards
+      rest.post("https://api.dashboard.com/initialize", {
+        body: {
+          facility_id: facility_id,
+          dashboard_config: {
+            equipment_health: equipment_health_scores,
+            quality_metrics: quality_forecast,
+            production_targets: production_targets,
+            maintenance_schedule: maintenance_predictions
+          }
+        }
+      })
+      
+      // Start predictive analytics
+      mcp.call("ai.start_continuous_analysis", {
+        facility_id: facility_id,
+        analysis_interval: 300, // 5 minutes
+        models: ai_models
+      })
+    }
+    
+    finally: {
+      // Graceful shutdown and data preservation
+      mcp.call("facility.shutdown_monitoring", {
+        facility_id: facility_id,
+        shutdown_time: now(),
+        final_metrics: get_current_metrics()
+      })
+      
+      // Archive session data
+      rest.post("https://api.archive.com/store", {
+        body: {
+          facility_id: facility_id,
+          session_data: get_session_summary(),
+          equipment_final_state: equipment_health_scores,
+          archive_location: "long_term_storage"
+        }
+      })
+      
+      log("IoT monitoring session ended for facility {{facility_id}}")
+    }
+}

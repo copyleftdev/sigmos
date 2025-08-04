@@ -1,0 +1,278 @@
+spec "RecommendationEngine" v3.0 {
+  description: "AI-powered product recommendation system with real-time personalization."
+
+  inputs:
+    customer_id: string { validate: /^CUST[0-9]{8}$/ }
+    session_id: string
+    browsing_history: array<object> {
+      default: [],
+      schema: {
+        product_id: string,
+        category: string,
+        price: float,
+        timestamp: string,
+        interaction_type: enum("view", "click", "add_to_cart", "purchase")
+      }
+    }
+    purchase_history: array<object> {
+      default: [],
+      schema: {
+        order_id: string,
+        products: array<string>,
+        total_amount: float,
+        purchase_date: string
+      }
+    }
+    customer_preferences: object {
+      categories: array<string> { default: [] }
+      price_range: object {
+        min: float { default: 0.0 }
+        max: float { default: 10000.0 }
+      }
+      brands: array<string> { default: [] }
+      size_preferences: array<string> { default: [] }
+    }
+    demographic_data: object {
+      age_group: enum("18-25", "26-35", "36-45", "46-55", "55+") { optional: true }
+      location: string { optional: true }
+      gender: enum("M", "F", "Other", "Prefer not to say") { optional: true }
+    }
+    recommendation_context: enum("homepage", "product_page", "cart", "checkout", "email") { default: "homepage" }
+    max_recommendations: int { default: 10, validate: max_recommendations > 0 && max_recommendations <= 50 }
+
+  computed:
+    customer_segment: -> mcp.call("ai.segment_customer", {
+      purchase_history: purchase_history,
+      browsing_behavior: browsing_history,
+      demographics: demographic_data,
+      preferences: customer_preferences
+    })
+    
+    affinity_scores: -> mcp.call("ai.calculate_affinity", {
+      customer_id: customer_id,
+      interaction_history: browsing_history,
+      purchase_patterns: purchase_history
+    })
+    
+    trending_products: -> rest.get("https://api.analytics.com/trending", {
+      params: {
+        timeframe: "24h",
+        category: if (len(customer_preferences.categories) > 0) {
+          customer_preferences.categories[0]
+        } else {
+          "all"
+        }
+      },
+      headers: { "Authorization": "Bearer " + system.analytics_api_key }
+    })
+    
+    personalized_recommendations: -> mcp.call("ai.generate_recommendations", {
+      customer_segment: customer_segment,
+      affinity_scores: affinity_scores,
+      context: recommendation_context,
+      constraints: {
+        price_range: customer_preferences.price_range,
+        preferred_brands: customer_preferences.brands,
+        max_items: max_recommendations
+      },
+      trending_boost: 0.2
+    })
+    
+    recommendation_confidence: -> mcp.call("ai.calculate_confidence", {
+      recommendations: personalized_recommendations,
+      historical_accuracy: get_historical_accuracy(customer_id),
+      data_completeness: calculate_data_completeness()
+    })
+
+  events:
+    on_page_view(page_data): {
+      // Track user interaction for real-time learning
+      rest.post("https://api.tracking.com/interaction", {
+        body: {
+          customer_id: customer_id,
+          session_id: session_id,
+          event_type: "page_view",
+          page_data: page_data,
+          timestamp: now(),
+          context: recommendation_context
+        },
+        headers: { "Content-Type": "application/json" }
+      })
+      
+      // Update real-time recommendations if on product page
+      if (recommendation_context == "product_page") {
+        let similar_products = mcp.call("ai.find_similar", {
+          product_id: page_data.product_id,
+          customer_preferences: customer_preferences,
+          limit: 6
+        })
+        
+        // Store for immediate display
+        rest.post("https://api.cache.com/recommendations", {
+          body: {
+            key: customer_id + "_similar",
+            recommendations: similar_products,
+            ttl: 300
+          }
+        })
+      }
+    }
+
+    on_add_to_cart(product): {
+      // Real-time cart-based recommendations
+      let cart_recommendations = mcp.call("ai.cart_recommendations", {
+        cart_items: get_current_cart(customer_id),
+        new_item: product,
+        customer_history: purchase_history,
+        cross_sell_boost: 1.5
+      })
+      
+      // Update recommendation display
+      rest.post("https://api.frontend.com/update-recommendations", {
+        body: {
+          customer_id: customer_id,
+          recommendations: cart_recommendations,
+          display_type: "cross_sell",
+          urgency: "high"
+        }
+      })
+      
+      // Track conversion opportunity
+      mcp.call("analytics.track_opportunity", {
+        customer_id: customer_id,
+        trigger_product: product.id,
+        recommended_products: cart_recommendations.map(r => r.product_id),
+        context: "add_to_cart"
+      })
+    }
+
+    on_purchase_completed(order): {
+      // Post-purchase recommendations and learning
+      rest.post("https://api.learning.com/purchase-feedback", {
+        body: {
+          customer_id: customer_id,
+          order: order,
+          previous_recommendations: get_recent_recommendations(customer_id, "7d"),
+          conversion_analysis: true
+        }
+      })
+      
+      // Generate post-purchase recommendations
+      let post_purchase_recs = mcp.call("ai.post_purchase_recommendations", {
+        purchased_items: order.items,
+        customer_profile: {
+          segment: customer_segment,
+          preferences: customer_preferences,
+          history: purchase_history
+        },
+        recommendation_types: ["complementary", "replenishment", "upgrade"]
+      })
+      
+      // Schedule follow-up email campaign
+      rest.post("https://api.email.com/schedule", {
+        body: {
+          customer_id: customer_id,
+          campaign_type: "post_purchase_recommendations",
+          recommendations: post_purchase_recs,
+          send_delay: "24h",
+          personalization_data: {
+            customer_name: get_customer_name(customer_id),
+            recent_purchase: order.items[0].name
+          }
+        }
+      })
+    }
+
+    on_recommendation_click(recommendation): {
+      // Track recommendation effectiveness
+      mcp.call("analytics.track_click", {
+        customer_id: customer_id,
+        recommendation_id: recommendation.id,
+        product_id: recommendation.product_id,
+        context: recommendation_context,
+        position: recommendation.position,
+        confidence_score: recommendation.confidence
+      })
+      
+      // Real-time model feedback
+      rest.post("https://api.ml.com/feedback", {
+        body: {
+          event_type: "positive_interaction",
+          customer_id: customer_id,
+          recommendation_data: recommendation,
+          timestamp: now()
+        }
+      })
+    }
+
+  constraints:
+    assert len(customer_id) == 12
+    ensure max_recommendations > 0 && max_recommendations <= 50
+    assert customer_preferences.price_range.min >= 0
+    ensure customer_preferences.price_range.max > customer_preferences.price_range.min
+    assert len(session_id) > 0
+    ensure recommendation_context in ["homepage", "product_page", "cart", "checkout", "email"]
+
+  lifecycle:
+    before: {
+      // Initialize recommendation session
+      mcp.call("session.init_recommendations", {
+        customer_id: customer_id,
+        session_id: session_id,
+        context: recommendation_context,
+        timestamp: now()
+      })
+      
+      // Load customer profile and preferences
+      rest.get("https://api.customer.com/profile/" + customer_id, {
+        headers: { "Authorization": "Bearer " + system.customer_api_key }
+      })
+    }
+    
+    after: {
+      log("Recommendation engine initialized for customer {{customer_id}} in context {{recommendation_context}}")
+      
+      // Pre-generate recommendations for faster response
+      rest.post("https://api.cache.com/precompute", {
+        body: {
+          customer_id: customer_id,
+          recommendations: personalized_recommendations,
+          confidence_scores: recommendation_confidence,
+          cache_duration: 1800
+        }
+      })
+      
+      // Start real-time tracking
+      rest.post("https://api.tracking.com/start-session", {
+        body: {
+          customer_id: customer_id,
+          session_id: session_id,
+          tracking_config: {
+            events: ["click", "view", "add_to_cart", "purchase"],
+            real_time_updates: true,
+            ml_feedback: true
+          }
+        }
+      })
+    }
+    
+    finally: {
+      // End recommendation session and collect metrics
+      let session_metrics = mcp.call("analytics.get_session_metrics", {
+        customer_id: customer_id,
+        session_id: session_id
+      })
+      
+      rest.post("https://api.analytics.com/session-complete", {
+        body: {
+          customer_id: customer_id,
+          session_id: session_id,
+          metrics: session_metrics,
+          recommendations_shown: get_recommendations_shown(session_id),
+          conversions: get_session_conversions(session_id)
+        }
+      })
+      
+      log("Recommendation session ended for customer {{customer_id}}")
+    }
+}

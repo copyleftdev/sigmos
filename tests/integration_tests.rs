@@ -233,3 +233,211 @@ fn test_resource_management() {
         // Components will be dropped at end of loop iteration
     }
 }
+
+/// Test that all example files can be parsed successfully
+#[test]
+fn test_all_examples_parse_successfully() {
+    use std::fs;
+    use std::path::Path;
+    
+    let examples_dir = Path::new("examples");
+    if !examples_dir.exists() {
+        println!("Examples directory not found, skipping example tests");
+        return;
+    }
+
+    let example_files = find_sigmos_files(examples_dir);
+    if example_files.is_empty() {
+        println!("No example files found, skipping example tests");
+        return;
+    }
+
+    for file_path in &example_files {
+        println!("Testing example: {}", file_path.display());
+        
+        let content = fs::read_to_string(file_path)
+            .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_path.display(), e));
+        
+        let result = SigmosParser::parse_spec(&content);
+        match result {
+            Ok(spec) => {
+                println!("✓ Successfully parsed: {} (version: {})", spec.name, spec.version);
+                
+                // Validate basic structure
+                assert!(!spec.name.is_empty(), "Spec name should not be empty");
+                assert!(!spec.version.is_empty(), "Spec version should not be empty");
+                
+                // Validate inputs structure if present
+                if !spec.inputs.is_empty() {
+                    println!("  - {} input fields defined", spec.inputs.len());
+                }
+                
+                // Validate computed fields if present
+                if !spec.computed.is_empty() {
+                    println!("  - {} computed fields defined", spec.computed.len());
+                }
+                
+                // Validate events if present
+                if !spec.events.is_empty() {
+                    println!("  - {} event handlers defined", spec.events.len());
+                }
+                
+                // Validate constraints if present
+                if !spec.constraints.is_empty() {
+                    println!("  - {} constraints defined", spec.constraints.len());
+                }
+            }
+            Err(e) => {
+                panic!("Failed to parse {}: {:?}", file_path.display(), e);
+            }
+        }
+    }
+    
+    println!("✓ All {} example files parsed successfully", example_files.len());
+}
+
+/// Test industry-specific examples for domain-appropriate patterns
+#[test]
+fn test_industry_specific_patterns() {
+    use std::fs;
+    use std::path::Path;
+    
+    let examples_dir = Path::new("examples");
+    if !examples_dir.exists() {
+        println!("Examples directory not found, skipping industry pattern tests");
+        return;
+    }
+
+    let example_files = find_sigmos_files(examples_dir);
+    if example_files.is_empty() {
+        println!("No example files found, skipping industry pattern tests");
+        return;
+    }
+
+    for file_path in &example_files {
+        println!("Testing industry patterns for: {}", file_path.display());
+        
+        let content = fs::read_to_string(file_path)
+            .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_path.display(), e));
+        
+        let spec = SigmosParser::parse_spec(&content)
+            .unwrap_or_else(|e| panic!("Failed to parse {}: {:?}", file_path.display(), e));
+        
+        // Determine industry type from file path and apply appropriate tests
+        let file_path_str = file_path.to_string_lossy().to_lowercase();
+        
+        if file_path_str.contains("fintech") || file_path_str.contains("trading") {
+            validate_fintech_patterns(&spec);
+            println!("✓ Fintech patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("healthcare") || file_path_str.contains("patient") {
+            validate_healthcare_patterns(&spec);
+            println!("✓ Healthcare patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("ecommerce") || file_path_str.contains("recommendation") {
+            validate_ecommerce_patterns(&spec);
+            println!("✓ E-commerce patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("manufacturing") || file_path_str.contains("iot") {
+            validate_manufacturing_patterns(&spec);
+            println!("✓ Manufacturing patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("logistics") || file_path_str.contains("supply") {
+            validate_logistics_patterns(&spec);
+            println!("✓ Logistics patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("cybersecurity") || file_path_str.contains("threat") {
+            validate_cybersecurity_patterns(&spec);
+            println!("✓ Cybersecurity patterns validated for {}", file_path.display());
+        } else if file_path_str.contains("smart-city") || file_path_str.contains("urban") {
+            validate_smart_city_patterns(&spec);
+            println!("✓ Smart city patterns validated for {}", file_path.display());
+        } else {
+            // For general examples, just validate basic structure
+            validate_general_patterns(&spec);
+            println!("✓ General patterns validated for {}", file_path.display());
+        }
+    }
+    
+    println!("✓ All {} example files validated for industry patterns", example_files.len());
+}
+
+// Helper function to find all .sigmos files recursively
+fn find_sigmos_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    use std::fs;
+    let mut files = Vec::new();
+    
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir).expect("Failed to read directory") {
+            let entry = entry.expect("Failed to read directory entry");
+            let path = entry.path();
+            
+            if path.is_dir() {
+                files.extend(find_sigmos_files(&path));
+            } else if path.extension().and_then(|s| s.to_str()) == Some("sigmos") {
+                files.push(path);
+            }
+        }
+    }
+    
+    files
+}
+
+// Industry-specific pattern validation functions
+fn validate_fintech_patterns(spec: &Specification) {
+    // Fintech should have risk management patterns
+    assert!(spec.name.contains("Trading") || spec.description.contains("trading") || spec.description.contains("financial"),
+        "Fintech example should be trading/financial related");
+    
+    // Should have compliance-related fields
+    let has_compliance = spec.inputs.iter().any(|(name, _)| 
+        name.contains("compliance") || name.contains("regulation") || name.contains("risk"));
+    assert!(has_compliance, "Fintech example should have compliance/risk fields");
+}
+
+fn validate_healthcare_patterns(spec: &Specification) {
+    // Healthcare should have patient-related patterns
+    assert!(spec.name.contains("Patient") || spec.description.contains("patient") || spec.description.contains("health"),
+        "Healthcare example should be patient/health related");
+    
+    // Should have medical data fields
+    let has_medical_fields = spec.inputs.iter().any(|(name, _)| 
+        name.contains("patient") || name.contains("vital") || name.contains("medical"));
+    assert!(has_medical_fields, "Healthcare example should have medical data fields");
+}
+
+fn validate_ecommerce_patterns(spec: &Specification) {
+    // E-commerce should have recommendation patterns
+    assert!(spec.name.contains("Recommendation") || spec.description.contains("recommendation") || spec.description.contains("commerce"),
+        "E-commerce example should be recommendation/commerce related");
+}
+
+fn validate_manufacturing_patterns(spec: &Specification) {
+    // Manufacturing should have IoT/monitoring patterns
+    assert!(spec.name.contains("IoT") || spec.name.contains("Monitoring") || spec.description.contains("manufacturing"),
+        "Manufacturing example should be IoT/monitoring related");
+}
+
+fn validate_logistics_patterns(spec: &Specification) {
+    // Logistics should have supply chain patterns
+    assert!(spec.name.contains("Supply") || spec.name.contains("Chain") || spec.description.contains("logistics"),
+        "Logistics example should be supply chain related");
+}
+
+fn validate_cybersecurity_patterns(spec: &Specification) {
+    // Cybersecurity should have threat detection patterns
+    assert!(spec.name.contains("Threat") || spec.name.contains("Security") || spec.description.contains("security"),
+        "Cybersecurity example should be security/threat related");
+}
+
+fn validate_smart_city_patterns(spec: &Specification) {
+    // Smart city should have urban management patterns
+    assert!(spec.name.contains("City") || spec.name.contains("Urban") || spec.description.contains("city"),
+        "Smart city example should be city/urban related");
+}
+
+fn validate_general_patterns(spec: &Specification) {
+    // General validation for any SIGMOS specification
+    assert!(!spec.name.is_empty(), "Spec name should not be empty");
+    assert!(!spec.version.is_empty(), "Spec version should not be empty");
+    assert!(!spec.description.is_empty(), "Spec should have a description");
+    
+    // Check that spec name follows PascalCase
+    assert!(spec.name.chars().next().unwrap().is_uppercase(),
+        "Spec name '{}' should start with uppercase", spec.name);
+}
