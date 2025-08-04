@@ -3,10 +3,10 @@
 //! This plugin provides HTTP/REST API integration capabilities for SIGMOS,
 //! enabling interaction with web services, APIs, and HTTP endpoints.
 
-use crate::{ConfigurablePlugin, PluginConfig, PluginError, PluginCapabilities, PluginMetadata};
-use sigmos_runtime::{Plugin, RuntimeResult, RuntimeError};
+use crate::{ConfigurablePlugin, PluginCapabilities, PluginConfig, PluginError, PluginMetadata};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use sigmos_runtime::{Plugin, RuntimeError, RuntimeResult};
 use std::collections::HashMap;
 
 /// HTTP method enumeration
@@ -51,20 +51,28 @@ pub struct RestConfig {
 impl PluginConfig for RestConfig {
     fn validate(&self) -> Result<(), PluginError> {
         if self.name.is_empty() {
-            return Err(PluginError::InvalidConfiguration("name cannot be empty".to_string()));
+            return Err(PluginError::InvalidConfiguration(
+                "name cannot be empty".to_string(),
+            ));
         }
         if self.base_url.is_empty() {
-            return Err(PluginError::InvalidConfiguration("base_url cannot be empty".to_string()));
+            return Err(PluginError::InvalidConfiguration(
+                "base_url cannot be empty".to_string(),
+            ));
         }
         if !self.base_url.starts_with("http://") && !self.base_url.starts_with("https://") {
-            return Err(PluginError::InvalidConfiguration("base_url must start with http:// or https://".to_string()));
+            return Err(PluginError::InvalidConfiguration(
+                "base_url must start with http:// or https://".to_string(),
+            ));
         }
         if self.timeout_seconds == 0 {
-            return Err(PluginError::InvalidConfiguration("timeout_seconds must be greater than 0".to_string()));
+            return Err(PluginError::InvalidConfiguration(
+                "timeout_seconds must be greater than 0".to_string(),
+            ));
         }
         Ok(())
     }
-    
+
     fn plugin_name(&self) -> &str {
         &self.name
     }
@@ -75,7 +83,7 @@ impl Default for RestConfig {
         let mut default_headers = HashMap::new();
         default_headers.insert("Content-Type".to_string(), "application/json".to_string());
         default_headers.insert("Accept".to_string(), "application/json".to_string());
-        
+
         Self {
             name: "rest".to_string(),
             base_url: "https://api.example.com".to_string(),
@@ -99,7 +107,7 @@ pub struct RestPlugin {
 
 impl ConfigurablePlugin for RestPlugin {
     type Config = RestConfig;
-    
+
     fn new(config: Self::Config) -> Result<Self, PluginError> {
         config.validate()?;
         let client = Some(reqwest::Client::new());
@@ -109,11 +117,11 @@ impl ConfigurablePlugin for RestPlugin {
             client,
         })
     }
-    
+
     fn config(&self) -> &Self::Config {
         &self.config
     }
-    
+
     fn update_config(&mut self, config: Self::Config) -> Result<(), PluginError> {
         config.validate()?;
         self.config = config;
@@ -125,27 +133,25 @@ impl Plugin for RestPlugin {
     fn name(&self) -> &str {
         &self.config.name
     }
-    
+
     fn initialize(&mut self) -> RuntimeResult<()> {
         // Initialize HTTP client
         // For now, this is a placeholder - would normally set up HTTP client with config
         self.initialized = true;
         Ok(())
     }
-    
-    fn execute(
-        &self,
-        method: &str,
-        args: &HashMap<String, JsonValue>,
-    ) -> RuntimeResult<JsonValue> {
+
+    fn execute(&self, method: &str, args: &HashMap<String, JsonValue>) -> RuntimeResult<JsonValue> {
         if !self.initialized {
-            return Err(RuntimeError::Plugin("REST plugin not initialized".to_string()));
+            return Err(RuntimeError::Plugin(
+                "REST plugin not initialized".to_string(),
+            ));
         }
-        
+
         // Use tokio runtime to handle async HTTP requests
         let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| RuntimeError::Plugin(format!("Failed to create async runtime: {}", e)))?;
-        
+            .map_err(|e| RuntimeError::Plugin(format!("Failed to create async runtime: {e}")))?;
+
         match method {
             "get" => rt.block_on(self.http_request(HttpMethod::GET, args)),
             "post" => rt.block_on(self.http_request(HttpMethod::POST, args)),
@@ -155,27 +161,35 @@ impl Plugin for RestPlugin {
             "head" => rt.block_on(self.http_request(HttpMethod::HEAD, args)),
             "options" => rt.block_on(self.http_request(HttpMethod::OPTIONS, args)),
             "request" => self.generic_request(args),
-            _ => Err(RuntimeError::Plugin(format!("Unknown REST method: {}", method))),
+            _ => Err(RuntimeError::Plugin(format!("Unknown REST method: {method}"))),
         }
     }
 }
 
 impl RestPlugin {
     /// Generic HTTP request method
-    async fn http_request(&self, method: HttpMethod, args: &HashMap<String, JsonValue>) -> RuntimeResult<JsonValue> {
-        let client = self.client.as_ref()
+    async fn http_request(
+        &self,
+        method: HttpMethod,
+        args: &HashMap<String, JsonValue>,
+    ) -> RuntimeResult<JsonValue> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| RuntimeError::Plugin("HTTP client not initialized".to_string()))?;
-        
-        let path = args.get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        
+
+        let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+
         let url = if path.is_empty() {
             self.config.base_url.clone()
         } else {
-            format!("{}/{}", self.config.base_url.trim_end_matches('/'), path.trim_start_matches('/'))
+            format!(
+                "{}/{}",
+                self.config.base_url.trim_end_matches('/'),
+                path.trim_start_matches('/')
+            )
         };
-        
+
         // Build the request
         let mut request_builder = match method {
             HttpMethod::GET => client.get(&url),
@@ -186,7 +200,7 @@ impl RestPlugin {
             HttpMethod::HEAD => client.head(&url),
             HttpMethod::OPTIONS => client.request(reqwest::Method::OPTIONS, &url),
         };
-        
+
         // Add headers if provided
         if let Some(headers) = args.get("headers").and_then(|v| v.as_object()) {
             for (key, value) in headers {
@@ -195,14 +209,17 @@ impl RestPlugin {
                 }
             }
         }
-        
+
         // Add body for POST/PUT/PATCH requests
-        if matches!(method, HttpMethod::POST | HttpMethod::PUT | HttpMethod::PATCH) {
+        if matches!(
+            method,
+            HttpMethod::POST | HttpMethod::PUT | HttpMethod::PATCH
+        ) {
             if let Some(body) = args.get("body") {
                 request_builder = request_builder.json(body);
             }
         }
-        
+
         // Add query parameters if provided
         if let Some(params) = args.get("params").and_then(|v| v.as_object()) {
             let mut query_params = Vec::new();
@@ -215,27 +232,40 @@ impl RestPlugin {
                 request_builder = request_builder.query(&query_params);
             }
         }
-        
+
         // Execute the request
-        let response = request_builder.send().await
-            .map_err(|e| RuntimeError::Plugin(format!("HTTP request failed: {}", e)))?;
-        
+        let response = request_builder
+            .send()
+            .await
+            .map_err(|e| RuntimeError::Plugin(format!("HTTP request failed: {e}")))?;
+
         let status = response.status().as_u16();
-        let headers_map: serde_json::Map<String, JsonValue> = response.headers()
+        let headers_map: serde_json::Map<String, JsonValue> = response
+            .headers()
             .iter()
-            .map(|(k, v)| (k.to_string(), JsonValue::String(v.to_str().unwrap_or("").to_string())))
+            .map(|(k, v)| {
+                (
+                    k.to_string(),
+                    JsonValue::String(v.to_str().unwrap_or("").to_string()),
+                )
+            })
             .collect();
-        
-        let body_text = response.text().await
-            .map_err(|e| RuntimeError::Plugin(format!("Failed to read response body: {}", e)))?;
-        
+
+        let body_text = response
+            .text()
+            .await
+            .map_err(|e| RuntimeError::Plugin(format!("Failed to read response body: {e}")))?;
+
         // Try to parse as JSON, fallback to string
         let body_json = serde_json::from_str::<JsonValue>(&body_text)
-            .unwrap_or_else(|_| JsonValue::String(body_text));
-        
+            .unwrap_or(JsonValue::String(body_text));
+
         Ok(JsonValue::Object({
             let mut obj = serde_json::Map::new();
-            obj.insert("status".to_string(), JsonValue::Number(serde_json::Number::from(status)));
+            obj.insert(
+                "status".to_string(),
+                JsonValue::Number(serde_json::Number::from(status)),
+            );
             obj.insert("headers".to_string(), JsonValue::Object(headers_map));
             obj.insert("body".to_string(), body_json);
             obj.insert("url".to_string(), JsonValue::String(url));
@@ -243,13 +273,14 @@ impl RestPlugin {
             obj
         }))
     }
-    
+
     /// Generic request with custom method
     fn generic_request(&self, args: &HashMap<String, JsonValue>) -> RuntimeResult<JsonValue> {
-        let method_str = args.get("method")
+        let method_str = args
+            .get("method")
             .and_then(|v| v.as_str())
             .ok_or_else(|| RuntimeError::Plugin("Missing 'method' argument".to_string()))?;
-        
+
         let method = match method_str.to_uppercase().as_str() {
             "GET" => HttpMethod::GET,
             "POST" => HttpMethod::POST,
@@ -258,15 +289,17 @@ impl RestPlugin {
             "PATCH" => HttpMethod::PATCH,
             "HEAD" => HttpMethod::HEAD,
             "OPTIONS" => HttpMethod::OPTIONS,
-            _ => return Err(RuntimeError::Plugin(format!("Unsupported HTTP method: {}", method_str))),
+            _ => {
+                return Err(RuntimeError::Plugin(format!("Unsupported HTTP method: {method_str}")))
+            }
         };
-        
+
         let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| RuntimeError::Plugin(format!("Failed to create async runtime: {}", e)))?;
-        
+            .map_err(|e| RuntimeError::Plugin(format!("Failed to create async runtime: {e}")))?;
+
         rt.block_on(self.http_request(method, args))
     }
-    
+
     /// Get plugin metadata
     pub fn metadata() -> PluginMetadata {
         PluginMetadata {
@@ -286,7 +319,7 @@ impl RestPlugin {
             ],
         }
     }
-    
+
     /// Get plugin capabilities
     pub fn capabilities() -> PluginCapabilities {
         PluginCapabilities {
@@ -306,14 +339,14 @@ mod tests {
     fn test_rest_config_validation() {
         let mut config = RestConfig::default();
         assert!(config.validate().is_ok());
-        
+
         config.name = "".to_string();
         assert!(config.validate().is_err());
-        
+
         config.name = "test".to_string();
         config.base_url = "invalid-url".to_string();
         assert!(config.validate().is_err());
-        
+
         config.base_url = "https://api.example.com".to_string();
         config.timeout_seconds = 0;
         assert!(config.validate().is_err());
@@ -338,16 +371,16 @@ mod tests {
             auth_token: None,
             user_agent: "SIGMOS-REST-Plugin/1.0".to_string(),
         };
-        
+
         let mut plugin = RestPlugin::new(config).unwrap();
         assert!(plugin.initialize().is_ok());
-        
+
         let mut args = HashMap::new();
         args.insert("path".to_string(), JsonValue::String("/get".to_string()));
-        
+
         // Test the plugin execution - this will make a real HTTP request
         let result = plugin.execute("get", &args);
-        
+
         // The request might fail due to network issues, so we test both success and failure cases
         match result {
             Ok(response) => {
@@ -362,7 +395,10 @@ mod tests {
                 match e {
                     RuntimeError::Plugin(_) => {
                         // This is expected if there's no network access
-                        println!("Network request failed (expected in some environments): {}", e);
+                        println!(
+                            "Network request failed (expected in some environments): {}",
+                            e
+                        );
                     }
                     _ => panic!("Unexpected error type: {}", e),
                 }

@@ -30,8 +30,8 @@
 //! let json = transpiler.to_json(&spec).unwrap();
 //! ```
 
+
 use sigmos_core::ast::Spec;
-use serde_json;
 use thiserror::Error;
 
 /// Transpiler errors
@@ -139,7 +139,7 @@ impl Transpiler {
     /// ```
     pub fn to_yaml(&self, spec: &Spec) -> TranspilerResult<String> {
         serde_yaml::to_string(spec)
-            .map_err(|e| TranspilerError::Yaml(format!("YAML serialization failed: {}", e)))
+            .map_err(|e| TranspilerError::Yaml(format!("YAML serialization failed: {e}")))
     }
 
     /// Convert a SIGMOS specification to TOML
@@ -173,7 +173,7 @@ impl Transpiler {
     /// ```
     pub fn to_toml(&self, spec: &Spec) -> TranspilerResult<String> {
         toml::to_string(spec)
-            .map_err(|e| TranspilerError::Toml(format!("TOML serialization failed: {}", e)))
+            .map_err(|e| TranspilerError::Toml(format!("TOML serialization failed: {e}")))
     }
 }
 
@@ -185,7 +185,11 @@ mod tests {
     fn create_test_spec() -> Spec {
         Spec {
             name: "TestSpec".to_string(),
-            version: Version { major: 1, minor: 0, patch: None },
+            version: Version {
+                major: 1,
+                minor: 0,
+                patch: None,
+            },
             description: Some("A test specification".to_string()),
             inputs: vec![],
             computed: vec![],
@@ -207,7 +211,7 @@ mod tests {
     fn test_to_json() {
         let transpiler = Transpiler::new();
         let spec = create_test_spec();
-        
+
         let json = transpiler.to_json(&spec).unwrap();
         assert!(json.contains("TestSpec"));
         assert!(json.contains("A test specification"));
@@ -217,7 +221,7 @@ mod tests {
     fn test_to_yaml() {
         let transpiler = Transpiler::new();
         let spec = create_test_spec();
-        
+
         let yaml = transpiler.to_yaml(&spec).unwrap();
         assert!(yaml.contains("name: TestSpec"));
         assert!(yaml.contains("major: 1"));
@@ -228,7 +232,7 @@ mod tests {
     fn test_to_toml() {
         let transpiler = Transpiler::new();
         let spec = create_test_spec();
-        
+
         let toml = transpiler.to_toml(&spec).unwrap();
         assert!(toml.contains("name = \"TestSpec\""));
         assert!(toml.contains("major = 1"));

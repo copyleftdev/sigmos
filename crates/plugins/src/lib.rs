@@ -66,8 +66,8 @@ use sigmos_runtime::Plugin;
 use thiserror::Error;
 
 pub mod mcp;
-pub mod rest;
 pub mod registry;
+pub mod rest;
 
 /// Plugin system errors
 #[derive(Error, Debug)]
@@ -90,7 +90,7 @@ pub enum PluginError {
 pub trait PluginConfig: std::fmt::Debug + Clone {
     /// Validate the configuration
     fn validate(&self) -> Result<(), PluginError>;
-    
+
     /// Get plugin name from configuration
     fn plugin_name(&self) -> &str;
 }
@@ -98,15 +98,15 @@ pub trait PluginConfig: std::fmt::Debug + Clone {
 /// Enhanced plugin trait with configuration support
 pub trait ConfigurablePlugin: Plugin {
     type Config: PluginConfig;
-    
+
     /// Create a new plugin instance with configuration
     fn new(config: Self::Config) -> Result<Self, PluginError>
     where
         Self: Sized;
-    
+
     /// Get the plugin configuration
     fn config(&self) -> &Self::Config;
-    
+
     /// Update the plugin configuration
     fn update_config(&mut self, config: Self::Config) -> Result<(), PluginError>;
 }
