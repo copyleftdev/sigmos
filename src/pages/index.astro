@@ -1,0 +1,321 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="SigmOS - Next-Generation DSL for AI-Native Systems">
+  <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/20 rounded-full blur-3xl animate-pulse-slow"></div>
+      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-500/20 rounded-full blur-3xl animate-pulse-slow"></div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="animate-fade-in">
+        <div class="mb-8 flex justify-center">
+          <div class="w-20 h-20 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-2xl">
+            <span class="text-white font-bold text-3xl">Σ</span>
+          </div>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+          <span class="bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+            SigmOS
+          </span>
+        </h1>
+        
+        <p class="text-xl md:text-2xl text-gray-300 mb-4 max-w-4xl mx-auto leading-relaxed">
+          A next-generation <span class="text-primary-400 font-semibold">Domain-Specific Language</span> for
+        </p>
+        <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+          <span class="text-accent-400 font-semibold">AI-native</span>, composable, reactive, and multimodal systems
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <a href="/sigmos/docs/getting-started" 
+             class="bg-gradient-to-r from-primary-600 to-accent-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-primary-500 hover:to-accent-500 transition-all duration-300 transform hover:scale-105">
+            ✨ Get Started
+          </a>
+          <a href="/sigmos/examples" 
+             class="bg-gray-800/50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg border border-gray-700 hover:bg-gray-700/50 transition-all duration-300">
+            💻 View Examples
+          </a>
+          <a href="https://github.com/copyleftdev/sigmos" 
+             class="text-gray-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300">
+            ⭐ GitHub
+          </a>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+          <div class="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-gray-800/50 shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 bg-gray-800/50 border-b border-gray-700/50">
+              <div class="flex space-x-2">
+                <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+              </div>
+              <span class="text-gray-400 text-sm font-mono">agent.sigmos</span>
+            </div>
+            <pre class="p-6 text-left overflow-x-auto text-sm font-mono text-gray-300">spec "AIAgent" v1.0 {
+  description: "An intelligent agent"
+  
+  inputs:
+    name: string
+    personality: enum("helpful", "creative")
+  
+  actions:
+    respond: prompt {
+      system: "You are a helpful assistant"
+      user: "Hello!"
+      model: "gpt-4"
+    }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+          Why SigmOS?
+        </h2>
+        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+          Built for the AI era with modern paradigms
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-primary-500/50 transition-all duration-300">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6">
+            <span class="text-white text-xl">🧠</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">AI-Native</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Prompts, LLM inference, and dynamic generation as first-class citizens.
+          </p>
+        </div>
+
+        <div class="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-accent-500/50 transition-all duration-300">
+          <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-6">
+            <span class="text-white text-xl">🔧</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Composable</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Modular specs, reusable patterns, and namespaced imports.
+          </p>
+        </div>
+
+        <div class="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-primary-500/50 transition-all duration-300">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center mb-6">
+            <span class="text-white text-xl">⚡</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Reactive</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Trigger-based, event-driven, lifecycle-aware systems.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="bg-gradient-to-r from-primary-900/50 to-accent-900/50 backdrop-blur-sm rounded-3xl p-12 border border-gray-800/50">
+        <h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">
+          Ready to build the future?
+        </h2>
+        <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          Join the community building the next generation of intelligent systems.
+        </p>
+        <a href="/sigmos/docs/getting-started" 
+           class="bg-gradient-to-r from-primary-600 to-accent-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-primary-500 hover:to-accent-500 transition-all duration-300 transform hover:scale-105">
+          Get Started Now →
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+
+  <span class="text-blue-400">description</span>: <span class="text-green-400">"An intelligent agent with multimodal capabilities"</span>
+  
+  <span class="text-primary-400">inputs</span>:
+    <span class="text-blue-400">name</span>: <span class="text-yellow-400">string</span>
+    <span class="text-blue-400">personality</span>: <span class="text-yellow-400">enum</span>(<span class="text-green-400">"helpful"</span>, <span class="text-green-400">"creative"</span>, <span class="text-green-400">"analytical"</span>)
+    <span class="text-blue-400">api_key</span>: <span class="text-yellow-400">string</span> { <span class="text-red-400">secret</span>: <span class="text-accent-400">true</span> }
+  
+  <span class="text-primary-400">computed</span>:
+    <span class="text-blue-400">greeting</span>: -> <span class="text-green-400">"Hello! I'm {{name}}, your {{personality}} AI assistant."</span>
+  
+  <span class="text-primary-400">actions</span>:
+    <span class="text-blue-400">respond</span>: <span class="text-yellow-400">prompt</span> {
+      <span class="text-blue-400">system</span>: <span class="text-green-400">"You are a {{personality}} AI assistant named {{name}}."</span>
+      <span class="text-blue-400">user</span>: <span class="text-green-400">"{{input.message}}"</span>
+      <span class="text-blue-400">model</span>: <span class="text-green-400">"gpt-4"</span>
+    }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+          Why SigmOS?
+        </h2>
+        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+          Built for the AI era with modern paradigms that traditional configuration languages can't match
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-primary-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Cpu class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">AI-Native</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Prompts, LLM inference, and dynamic generation as first-class citizens. Build intelligent systems that think and adapt.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-accent-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Layers class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Composable</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Modular specs, reusable patterns, and namespaced imports. Build complex systems from simple, tested components.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-primary-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Zap class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Reactive</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Trigger-based, event-driven, lifecycle-aware systems that respond intelligently to changing conditions.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-accent-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-primary-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Shield class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Secure</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Field permissioning, trusted imports, and deterministic evaluation keep your systems safe and predictable.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-primary-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Code class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Typed & Validated</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Strong types, constraint logic, and schema compliance ensure your specifications are correct by construction.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-800/50 hover:border-accent-500/50 transition-all duration-300 hover:transform hover:scale-105">
+          <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+            <Sparkles class="w-6 h-6 text-white" />
+          </div>
+          <h3 class="text-xl font-semibold mb-4 text-white">Extensible</h3>
+          <p class="text-gray-400 leading-relaxed">
+            Plugin-based architecture with secure runtime extensions. Extend functionality without compromising security.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start Section -->
+  <section class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+          Get Started in Minutes
+        </h2>
+        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+          Install SigmOS and start building intelligent systems right away
+        </p>
+      </div>
+
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-gray-800/50 shadow-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 bg-gray-800/50 border-b border-gray-700/50">
+            <span class="text-gray-400 text-sm font-mono">Terminal</span>
+            <button class="text-gray-400 hover:text-white transition-colors text-sm">Copy</button>
+          </div>
+          <pre class="p-6 text-left overflow-x-auto"><code class="text-sm font-mono text-gray-300"><span class="text-gray-500"># Clone the repository</span>
+<span class="text-primary-400">git clone</span> https://github.com/copyleftdev/sigmos.git
+<span class="text-primary-400">cd</span> sigmos
+
+<span class="text-gray-500"># Build the project</span>
+<span class="text-primary-400">cargo build</span> --release
+
+<span class="text-gray-500"># Install the CLI</span>
+<span class="text-primary-400">cargo install</span> --path crates/cli
+
+<span class="text-gray-500"># Run your first spec</span>
+<span class="text-primary-400">sigmos run</span> examples/agent.sigmos</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="bg-gradient-to-r from-primary-900/50 to-accent-900/50 backdrop-blur-sm rounded-3xl p-12 border border-gray-800/50">
+        <h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">
+          Ready to build the future?
+        </h2>
+        <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          Join the community building the next generation of intelligent systems with SigmOS.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/sigmos/docs/getting-started" 
+             class="bg-gradient-to-r from-primary-600 to-accent-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-primary-500 hover:to-accent-500 transition-all duration-300 transform hover:scale-105">
+            Get Started Now →
+          </a>
+          <a href="/sigmos/examples" 
+             class="bg-gray-800/50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg border border-gray-700 hover:bg-gray-700/50 hover:border-gray-600 transition-all duration-300 transform hover:scale-105">
+            Explore Examples
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+  
+  .bg-size-200 {
+    background-size: 200% 200%;
+  }
+</style>
