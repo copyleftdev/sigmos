@@ -1,0 +1,251 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// Custom styles for SigmOS documentation site
+.hero-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+  padding: 4rem 2rem;
+  margin: -2rem -2rem 3rem -2rem;
+  border-radius: 0 0 1rem 1rem;
+  
+  h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-weight: 700;
+  }
+  
+  p {
+    font-size: 1.4rem;
+    margin-bottom: 2rem;
+    opacity: 0.95;
+  }
+  
+  .hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    
+    a {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 1rem 2rem;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.3);
+      
+      &:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      }
+    }
+  }
+}
+
+// Feature grid
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+  
+  .feature-card {
+    padding: 2rem;
+    border: 1px solid #e1e5e9;
+    border-radius: 0.75rem;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+    
+    h3 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    
+    p {
+      color: #666;
+      line-height: 1.6;
+    }
+  }
+}
+
+// Code blocks
+.highlight {
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+  
+  pre {
+    padding: 1.5rem;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+  }
+}
+
+// Custom syntax highlighting for SigmOS
+.language-sigmos {
+  .k { color: #d73a49; } // keywords
+  .s { color: #032f62; } // strings
+  .c { color: #6a737d; } // comments
+  .n { color: #6f42c1; } // names
+  .o { color: #d73a49; } // operators
+}
+
+// Navigation improvements
+.site-header {
+  border-bottom: 1px solid #e1e5e9;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  
+  .site-title {
+    font-weight: 700;
+    color: #667eea !important;
+    font-size: 1.5rem;
+  }
+  
+  .site-nav .page-link {
+    color: #333;
+    font-weight: 500;
+    
+    &:hover {
+      color: #667eea;
+    }
+  }
+}
+
+// Call-to-action sections
+.cta-section {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 1rem;
+  margin: 3rem 0;
+  
+  h2, h3 {
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  p {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 2rem;
+  }
+  
+  .cta-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      color: white;
+    }
+  }
+}
+
+// Example cards
+.example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+  
+  .example-card {
+    padding: 2rem;
+    border: 1px solid #e1e5e9;
+    border-radius: 0.75rem;
+    background: white;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    h3 {
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    
+    a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 3rem 1rem;
+    
+    h1 {
+      font-size: 2.5rem;
+    }
+    
+    .hero-buttons {
+      flex-direction: column;
+      align-items: center;
+      
+      a {
+        width: 100%;
+        max-width: 250px;
+      }
+    }
+  }
+  
+  .feature-grid,
+  .example-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Footer improvements
+.site-footer {
+  background: #333;
+  color: white;
+  
+  .footer-heading {
+    color: white;
+  }
+  
+  a {
+    color: #ccc;
+    
+    &:hover {
+      color: #667eea;
+    }
+  }
+}

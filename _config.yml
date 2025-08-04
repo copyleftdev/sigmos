@@ -1,0 +1,77 @@
+# Site settings
+title: "SigmOS"
+description: "A next-generation Domain-Specific Language (DSL) designed to define, orchestrate, and execute AI-native, composable, reactive, and multimodal systems."
+baseurl: ""
+url: "https://copyleftdev.github.io/sigmos"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Navigation
+header_pages:
+  - index.md
+  - docs/user-guide.md
+  - docs/developer-guide.md
+  - docs/api-reference.md
+  - examples.md
+
+# GitHub
+github_username: copyleftdev
+repository: copyleftdev/sigmos
+
+# SEO
+author: "Lead Sigma"
+twitter:
+  username: copyleftdev
+  card: summary_large_image
+
+# Collections
+collections:
+  examples:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: ""
+      type: "examples"
+    values:
+      layout: "example"
+
+# Syntax highlighting
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - target/
+  - crates/
+  - src/
+  - tests/
+  - Cargo.toml
+  - Cargo.lock
