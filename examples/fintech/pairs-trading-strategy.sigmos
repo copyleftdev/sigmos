@@ -1,0 +1,114 @@
+spec "PairsTradingStrategy" v1.0 {
+  description: "Market-neutral pairs trading strategy with AI-powered correlation analysis and statistical arbitrage for systematic alpha generation."
+
+  inputs:
+    strategy_id: string
+    asset_pair_1: string { default: "AAPL" }
+    asset_pair_2: string { default: "MSFT" }
+    correlation_lookback: int { default: 60 }
+    entry_z_score: float { default: 2.0 }
+    exit_z_score: float { default: 0.5 }
+    
+    account_balance: float { default: 100000.0 }
+    pair_allocation: float { default: 0.1 }
+    hedge_ratio: float { default: 1.0 }
+    min_correlation: float { default: 0.7 }
+    max_spread_volatility: float { default: 0.05 }
+    
+    cointegration_test: bool { default: true }
+    dynamic_hedge_ratio: bool { default: true }
+    spread_normalization: bool { default: true }
+    volume_weighted_entry: bool { default: true }
+    
+    ai_models: string
+    market_data_feed: string
+    execution_venue: string
+    
+    stop_loss_z_score: float { default: 3.5 }
+    max_holding_period: int { default: 30 }
+    rebalance_frequency: int { default: 5 }
+    
+    risk_management_enabled: bool { default: true }
+    correlation_monitoring: bool { default: true }
+    spread_monitoring: bool { default: true }
+    position_sizing_dynamic: bool { default: true }
+
+  computed:
+    current_spread: -> calculate_spread()
+    spread_z_score: -> calculate_z_score()
+    correlation_coefficient: -> measure_correlation()
+    
+  events:
+    on_create(strategy): initialize_pairs_trading
+    on_signal(spread_divergence): enter_pairs_position
+    on_signal(spread_convergence): exit_pairs_position
+    on_change(correlation_coefficient): adjust_hedge_ratio
+    on_timer(rebalance_frequency): rebalance_positions
+    on_error(correlation_breakdown): emergency_exit
+
+  actions:
+    initialize_pairs_trading {
+      description: "Initialize pairs trading strategy"
+      mcp_call: "trading/pairs/initialize"
+      parameters: {
+        strategy_id: strategy_id,
+        asset_pair_1: asset_pair_1,
+        asset_pair_2: asset_pair_2,
+        correlation_lookback: correlation_lookback,
+        account_balance: account_balance
+      }
+    }
+
+    enter_pairs_position {
+      description: "Enter market-neutral pairs position"
+      mcp_call: "trading/pairs/enter_position"
+      parameters: {
+        asset_pair_1: asset_pair_1,
+        asset_pair_2: asset_pair_2,
+        current_spread: current_spread,
+        spread_z_score: spread_z_score,
+        hedge_ratio: hedge_ratio,
+        pair_allocation: pair_allocation
+      }
+    }
+
+    exit_pairs_position {
+      description: "Exit pairs trading position"
+      mcp_call: "trading/pairs/exit_position"
+      parameters: {
+        strategy_id: strategy_id,
+        exit_z_score: exit_z_score,
+        spread_z_score: spread_z_score
+      }
+    }
+
+    adjust_hedge_ratio {
+      description: "Dynamically adjust hedge ratio based on correlation"
+      mcp_call: "trading/pairs/adjust_hedge"
+      parameters: {
+        correlation_coefficient: correlation_coefficient,
+        dynamic_hedge_ratio: dynamic_hedge_ratio,
+        strategy_id: strategy_id
+      }
+    }
+
+    rebalance_positions {
+      description: "Rebalance pairs positions periodically"
+      mcp_call: "trading/pairs/rebalance"
+      parameters: {
+        strategy_id: strategy_id,
+        rebalance_frequency: rebalance_frequency,
+        position_sizing_dynamic: position_sizing_dynamic
+      }
+    }
+
+    emergency_exit {
+      description: "Emergency exit due to correlation breakdown"
+      mcp_call: "trading/pairs/emergency_exit"
+      parameters: {
+        strategy_id: strategy_id,
+        correlation_coefficient: correlation_coefficient,
+        min_correlation: min_correlation
+      }
+    }
+}

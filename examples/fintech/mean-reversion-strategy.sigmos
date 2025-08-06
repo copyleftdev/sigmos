@@ -1,0 +1,96 @@
+spec "MeanReversionStrategy" v1.0 {
+  description: "Advanced mean reversion trading strategy with AI-powered statistical analysis and dynamic risk management for systematic alpha generation."
+
+  inputs:
+    strategy_id: string
+    trading_pairs: string { default: "BTC/USD,ETH/USD,SPY" }
+    lookback_period: int { default: 20 }
+    entry_threshold: float { default: 2.0 }
+    exit_threshold: float { default: 0.5 }
+    
+    account_balance: float { default: 100000.0 }
+    max_position_size: float { default: 0.05 }
+    risk_tolerance: string { default: "moderate" }
+    stop_loss_pct: float { default: 0.02 }
+    take_profit_pct: float { default: 0.04 }
+    
+    bollinger_bands_enabled: bool { default: true }
+    rsi_enabled: bool { default: true }
+    z_score_enabled: bool { default: true }
+    volume_confirmation: bool { default: true }
+    
+    ai_models: string
+    market_data_feed: string
+    execution_venue: string
+    
+    compliance_mode: bool { default: true }
+    max_daily_trades: int { default: 50 }
+    trading_hours_only: bool { default: true }
+    risk_management_enabled: bool { default: true }
+
+  computed:
+    max_trade_amount: -> calculate_position_size()
+    current_volatility: -> measure_volatility()
+    market_regime: -> detect_regime()
+    
+  events:
+    on_create(strategy): initialize_mean_reversion
+    on_change(market_regime): adjust_strategy_parameters
+    on_signal(entry): execute_mean_reversion_entry
+    on_signal(exit): execute_mean_reversion_exit
+    on_error(risk_breach): emergency_position_close
+
+  actions:
+    initialize_mean_reversion {
+      description: "Initialize mean reversion trading strategy"
+      mcp_call: "trading/mean_reversion/initialize"
+      parameters: {
+        strategy_id: strategy_id,
+        trading_pairs: trading_pairs,
+        lookback_period: lookback_period,
+        entry_threshold: entry_threshold,
+        exit_threshold: exit_threshold,
+        account_balance: account_balance
+      }
+    }
+
+    adjust_strategy_parameters {
+      description: "Dynamically adjust strategy parameters based on market regime"
+      mcp_call: "trading/mean_reversion/adjust_parameters"
+      parameters: {
+        market_regime: market_regime,
+        current_volatility: current_volatility,
+        risk_tolerance: risk_tolerance
+      }
+    }
+
+    execute_mean_reversion_entry {
+      description: "Execute mean reversion entry signal"
+      mcp_call: "trading/mean_reversion/enter_position"
+      parameters: {
+        trading_pairs: trading_pairs,
+        max_trade_amount: max_trade_amount,
+        entry_threshold: entry_threshold,
+        stop_loss_pct: stop_loss_pct,
+        take_profit_pct: take_profit_pct
+      }
+    }
+
+    execute_mean_reversion_exit {
+      description: "Execute mean reversion exit signal"
+      mcp_call: "trading/mean_reversion/exit_position"
+      parameters: {
+        exit_threshold: exit_threshold,
+        strategy_id: strategy_id
+      }
+    }
+
+    emergency_position_close {
+      description: "Emergency position closure for risk management"
+      mcp_call: "trading/risk_management/emergency_close"
+      parameters: {
+        strategy_id: strategy_id,
+        reason: "risk_breach"
+      }
+    }
+}
