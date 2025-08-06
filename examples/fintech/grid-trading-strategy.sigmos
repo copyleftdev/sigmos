@@ -1,0 +1,101 @@
+spec "GridTradingStrategy" v1.0 {
+  description: "Advanced grid trading strategy with AI-powered volatility analysis and dynamic grid adjustment for systematic profit from market oscillations."
+
+  inputs:
+    strategy_id: string
+    trading_pair: string { default: "BTC/USD" }
+    grid_levels: int { default: 10 }
+    grid_spacing_pct: float { default: 0.02 }
+    base_order_size: float { default: 1000.0 }
+    
+    account_balance: float { default: 100000.0 }
+    total_grid_allocation: float { default: 0.5 }
+    upper_price_limit: float { default: 0.0 }
+    lower_price_limit: float { default: 0.0 }
+    
+    dynamic_grid_enabled: bool { default: true }
+    volatility_adjustment: bool { default: true }
+    trend_filter_enabled: bool { default: true }
+    volume_weighted_orders: bool { default: true }
+    
+    ai_models: string
+    market_data_feed: string
+    execution_venue: string
+    
+    stop_loss_enabled: bool { default: false }
+    take_profit_enabled: bool { default: false }
+    grid_rebalance_frequency: int { default: 24 }
+    
+    risk_management_enabled: bool { default: true }
+    max_drawdown_pct: float { default: 0.15 }
+    position_monitoring: bool { default: true }
+    profit_taking_enabled: bool { default: true }
+
+  computed:
+    current_price: -> get_current_price()
+    grid_spacing: -> calculate_grid_spacing()
+    volatility_factor: -> measure_volatility()
+    
+  events:
+    on_create(strategy): initialize_grid_trading
+    on_price_hit(grid_level): execute_grid_order
+    on_timer(grid_rebalance_frequency): rebalance_grid
+    on_change(volatility_factor): adjust_grid_spacing
+    on_error(max_drawdown): pause_grid_trading
+
+  actions:
+    initialize_grid_trading {
+      description: "Initialize grid trading strategy"
+      mcp_call: "trading/grid/initialize"
+      parameters: {
+        strategy_id: strategy_id,
+        trading_pair: trading_pair,
+        grid_levels: grid_levels,
+        grid_spacing_pct: grid_spacing_pct,
+        base_order_size: base_order_size,
+        account_balance: account_balance
+      }
+    }
+
+    execute_grid_order {
+      description: "Execute buy or sell order when price hits grid level"
+      mcp_call: "trading/grid/execute_order"
+      parameters: {
+        trading_pair: trading_pair,
+        current_price: current_price,
+        base_order_size: base_order_size,
+        volume_weighted_orders: volume_weighted_orders
+      }
+    }
+
+    rebalance_grid {
+      description: "Rebalance grid levels based on market conditions"
+      mcp_call: "trading/grid/rebalance"
+      parameters: {
+        strategy_id: strategy_id,
+        current_price: current_price,
+        grid_spacing: grid_spacing,
+        dynamic_grid_enabled: dynamic_grid_enabled
+      }
+    }
+
+    adjust_grid_spacing {
+      description: "Dynamically adjust grid spacing based on volatility"
+      mcp_call: "trading/grid/adjust_spacing"
+      parameters: {
+        volatility_factor: volatility_factor,
+        volatility_adjustment: volatility_adjustment,
+        grid_spacing_pct: grid_spacing_pct
+      }
+    }
+
+    pause_grid_trading {
+      description: "Pause grid trading due to excessive drawdown"
+      mcp_call: "trading/grid/pause"
+      parameters: {
+        strategy_id: strategy_id,
+        max_drawdown_pct: max_drawdown_pct,
+        reason: "drawdown_limit"
+      }
+    }
+}

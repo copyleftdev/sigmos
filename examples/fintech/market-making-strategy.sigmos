@@ -1,0 +1,102 @@
+spec "MarketMakingStrategy" v1.0 {
+  description: "Advanced market making strategy with AI-powered spread optimization and inventory management for systematic liquidity provision and bid-ask capture."
+
+  inputs:
+    strategy_id: string
+    trading_pair: string { default: "BTC/USD" }
+    base_spread_bps: int { default: 10 }
+    order_size: float { default: 1000.0 }
+    max_inventory: float { default: 10.0 }
+    
+    account_balance: float { default: 100000.0 }
+    inventory_target: float { default: 0.0 }
+    spread_multiplier: float { default: 1.0 }
+    min_spread_bps: int { default: 5 }
+    max_spread_bps: int { default: 50 }
+    
+    dynamic_spread_enabled: bool { default: true }
+    inventory_skew_enabled: bool { default: true }
+    volatility_adjustment: bool { default: true }
+    order_refresh_enabled: bool { default: true }
+    
+    ai_models: string
+    market_data_feed: string
+    execution_venue: string
+    
+    order_refresh_interval: int { default: 5 }
+    inventory_rebalance_threshold: float { default: 0.8 }
+    adverse_selection_protection: bool { default: true }
+    
+    risk_management_enabled: bool { default: true }
+    max_position_size: float { default: 0.1 }
+    stop_loss_enabled: bool { default: true }
+    profit_target_enabled: bool { default: false }
+
+  computed:
+    current_inventory: -> calculate_inventory()
+    optimal_spread: -> calculate_optimal_spread()
+    market_volatility: -> measure_volatility()
+    
+  events:
+    on_create(strategy): initialize_market_making
+    on_fill(order): manage_inventory
+    on_timer(order_refresh_interval): refresh_quotes
+    on_change(market_volatility): adjust_spread
+    on_error(inventory_limit): rebalance_inventory
+
+  actions:
+    initialize_market_making {
+      description: "Initialize market making strategy"
+      mcp_call: "trading/market_making/initialize"
+      parameters: {
+        strategy_id: strategy_id,
+        trading_pair: trading_pair,
+        base_spread_bps: base_spread_bps,
+        order_size: order_size,
+        account_balance: account_balance
+      }
+    }
+
+    manage_inventory {
+      description: "Manage inventory after order fills"
+      mcp_call: "trading/market_making/manage_inventory"
+      parameters: {
+        current_inventory: current_inventory,
+        inventory_target: inventory_target,
+        max_inventory: max_inventory,
+        inventory_skew_enabled: inventory_skew_enabled
+      }
+    }
+
+    refresh_quotes {
+      description: "Refresh bid and ask quotes"
+      mcp_call: "trading/market_making/refresh_quotes"
+      parameters: {
+        trading_pair: trading_pair,
+        optimal_spread: optimal_spread,
+        order_size: order_size,
+        current_inventory: current_inventory
+      }
+    }
+
+    adjust_spread {
+      description: "Dynamically adjust spread based on market conditions"
+      mcp_call: "trading/market_making/adjust_spread"
+      parameters: {
+        market_volatility: market_volatility,
+        volatility_adjustment: volatility_adjustment,
+        min_spread_bps: min_spread_bps,
+        max_spread_bps: max_spread_bps
+      }
+    }
+
+    rebalance_inventory {
+      description: "Rebalance inventory when limits are breached"
+      mcp_call: "trading/market_making/rebalance"
+      parameters: {
+        strategy_id: strategy_id,
+        current_inventory: current_inventory,
+        inventory_rebalance_threshold: inventory_rebalance_threshold
+      }
+    }
+}

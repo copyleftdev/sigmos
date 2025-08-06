@@ -1,0 +1,114 @@
+spec "MomentumTrendStrategy" v1.0 {
+  description: "Advanced momentum and trend following strategy with AI-powered trend detection and adaptive position sizing for systematic trend capture."
+
+  inputs:
+    strategy_id: string
+    trading_pairs: string { default: "BTC/USD,ETH/USD,QQQ,SPY" }
+    trend_lookback: int { default: 50 }
+    momentum_period: int { default: 14 }
+    trend_strength_threshold: float { default: 0.7 }
+    
+    account_balance: float { default: 100000.0 }
+    base_position_size: float { default: 0.03 }
+    max_position_size: float { default: 0.15 }
+    pyramid_enabled: bool { default: true }
+    pyramid_levels: int { default: 3 }
+    
+    moving_average_fast: int { default: 10 }
+    moving_average_slow: int { default: 30 }
+    rsi_period: int { default: 14 }
+    atr_period: int { default: 14 }
+    
+    trend_confirmation_required: bool { default: true }
+    volume_confirmation: bool { default: true }
+    breakout_detection: bool { default: true }
+    
+    ai_models: string
+    market_data_feed: string
+    execution_venue: string
+    
+    stop_loss_atr_multiplier: float { default: 2.0 }
+    take_profit_ratio: float { default: 3.0 }
+    trailing_stop_enabled: bool { default: true }
+    
+    max_daily_trades: int { default: 20 }
+    trading_session_filter: bool { default: true }
+    risk_management_enabled: bool { default: true }
+
+  computed:
+    position_size: -> calculate_momentum_position()
+    trend_strength: -> measure_trend_strength()
+    market_volatility: -> calculate_atr()
+    
+  events:
+    on_create(strategy): initialize_momentum_strategy
+    on_signal(trend_start): enter_trend_position
+    on_signal(trend_continuation): add_to_position
+    on_signal(trend_end): exit_trend_position
+    on_change(trend_strength): adjust_position_size
+    on_error(drawdown_limit): reduce_exposure
+
+  actions:
+    initialize_momentum_strategy {
+      description: "Initialize momentum and trend following strategy"
+      mcp_call: "trading/momentum/initialize"
+      parameters: {
+        strategy_id: strategy_id,
+        trading_pairs: trading_pairs,
+        trend_lookback: trend_lookback,
+        momentum_period: momentum_period,
+        account_balance: account_balance
+      }
+    }
+
+    enter_trend_position {
+      description: "Enter initial trend following position"
+      mcp_call: "trading/momentum/enter_trend"
+      parameters: {
+        trading_pairs: trading_pairs,
+        position_size: position_size,
+        trend_strength: trend_strength,
+        stop_loss_atr_multiplier: stop_loss_atr_multiplier,
+        take_profit_ratio: take_profit_ratio
+      }
+    }
+
+    add_to_position {
+      description: "Add to existing position on trend continuation"
+      mcp_call: "trading/momentum/pyramid_position"
+      parameters: {
+        strategy_id: strategy_id,
+        pyramid_enabled: pyramid_enabled,
+        pyramid_levels: pyramid_levels,
+        max_position_size: max_position_size
+      }
+    }
+
+    exit_trend_position {
+      description: "Exit trend following position"
+      mcp_call: "trading/momentum/exit_trend"
+      parameters: {
+        strategy_id: strategy_id,
+        trailing_stop_enabled: trailing_stop_enabled
+      }
+    }
+
+    adjust_position_size {
+      description: "Dynamically adjust position size based on trend strength"
+      mcp_call: "trading/momentum/adjust_size"
+      parameters: {
+        trend_strength: trend_strength,
+        market_volatility: market_volatility,
+        base_position_size: base_position_size
+      }
+    }
+
+    reduce_exposure {
+      description: "Reduce exposure due to drawdown limits"
+      mcp_call: "trading/risk_management/reduce_exposure"
+      parameters: {
+        strategy_id: strategy_id,
+        reduction_factor: 0.5
+      }
+    }
+}
