@@ -1,0 +1,73 @@
+spec "APTSimulation" v3.2 {
+  description: "Advanced Persistent Threat simulation platform for expert red team operations with AI-enhanced multi-stage attack campaigns."
+
+  inputs:
+    campaign_id: string
+    threat_actor: string { default: "custom" }
+    organization_type: string
+    target_size: string
+    security_maturity: string { default: "intermediate" }
+    geographic_region: string
+    campaign_duration: int { default: 90 }
+    stealth_level: string { default: "stealthy" }
+    
+    infrastructure_domains: string
+    infrastructure_servers: string
+    infrastructure_redirectors: string
+    c2_protocols: string
+    
+    reconnaissance_scope: string
+    social_engineering_enabled: bool { default: true }
+    technical_attacks_enabled: bool { default: true }
+    physical_attacks_enabled: bool { default: false }
+    
+    ai_models: string
+    threat_intel_feeds: string
+    evasion_techniques: string
+    
+    compliance_mode: bool { default: true }
+    logging_level: string { default: "detailed" }
+    audit_trail: bool { default: true }
+
+  computed:
+    campaign_start_time: -> now()
+    estimated_duration: -> campaign_duration
+    risk_score: -> calculate_risk_score()
+    
+  events:
+    on_create(campaign): initialize_campaign
+    on_change(stealth_level): adjust_tactics
+    on_error(detection): execute_evasion
+
+  actions:
+    initialize_campaign {
+      description: "Initialize campaign infrastructure and settings"
+      mcp_call: "campaign/init"
+      parameters: {
+        campaign_id: campaign_id,
+        threat_actor: threat_actor,
+        organization_type: organization_type,
+        target_size: target_size,
+        security_maturity: security_maturity,
+        geographic_region: geographic_region,
+        campaign_duration: campaign_duration,
+        stealth_level: stealth_level
+      }
+    }
+
+    adjust_tactics {
+      description: "Adjust tactics based on stealth level"
+      mcp_call: "tactics/adjust"
+      parameters: {
+        stealth_level: stealth_level
+      }
+    }
+
+    execute_evasion {
+      description: "Execute evasion techniques"
+      mcp_call: "evasion/execute"
+      parameters: {
+        evasion_techniques: evasion_techniques
+      }
+    }
+}

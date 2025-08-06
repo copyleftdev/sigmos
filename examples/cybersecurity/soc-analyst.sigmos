@@ -1,0 +1,332 @@
+spec "SOCAnalystWorkflow" v2.1 {
+  description: "AI-enhanced SOC analyst workflow for alert triage, incident classification, and escalation management."
+
+  inputs:
+    analyst_profile: object {
+      analyst_id: string { validate: /^SOC[0-9]{4}$/ }
+      experience_level: enum("junior", "mid", "senior") { default: "mid" }
+      shift: enum("day", "night", "weekend") { default: "day" }
+      specializations: array<string> { default: ["network", "endpoint", "email"] }
+      current_workload: int { default: 0, description: "active incidents" }
+      max_capacity: int { default: 15, description: "max concurrent incidents" }
+    }
+    
+    siem_configuration: object {
+      platform: enum("splunk", "qradar", "sentinel", "chronicle") { default: "splunk" }
+      alert_sources: array<string> { default: ["firewall", "ids", "av", "edr", "email_security"] }
+      correlation_rules: array<object> {
+        schema: {
+          rule_id: string,
+          severity: enum("low", "medium", "high", "critical"),
+          confidence: float,
+          ttl: int { description: "time to live in minutes" }
+        }
+      }
+      false_positive_threshold: float { default: 0.3 }
+    }
+    
+    escalation_matrix: object {
+      l2_threshold: float { default: 0.7, description: "risk score for L2 escalation" }
+      l3_threshold: float { default: 0.85, description: "risk score for L3 escalation" }
+      manager_threshold: float { default: 0.9, description: "risk score for manager notification" }
+      auto_escalation_time: int { default: 1800, description: "seconds before auto-escalation" }
+      business_hours: object {
+        start: string { default: "08:00" }
+        end: string { default: "18:00" }
+        timezone: string { default: "UTC" }
+      }
+    }
+    
+    ai_models: object {
+      alert_classifier: string { default: "alert_classifier_v3.2" }
+      false_positive_detector: string { default: "fp_detector_v2.8" }
+      threat_scorer: string { default: "threat_scorer_v4.1" }
+      correlation_engine: string { default: "correlation_v2.5" }
+      triage_assistant: string { default: "triage_ai_v1.9" }
+    }
+    
+    playbooks: array<object> {
+      schema: {
+        playbook_id: string,
+        alert_type: string,
+        automated_steps: array<string>,
+        manual_steps: array<string>,
+        estimated_time: int { description: "minutes" },
+        required_tools: array<string>
+      }
+    }
+
+  computed:
+    analyst_capacity: -> {
+      let utilization = analyst_profile.current_workload / analyst_profile.max_capacity
+      return {
+        current_load: utilization,
+        available_slots: analyst_profile.max_capacity - analyst_profile.current_workload,
+        overloaded: utilization > 0.8,
+        stress_level: if utilization > 0.9 then "high" else if utilization > 0.7 then "medium" else "low"
+      }
+    }
+    
+    shift_context: -> {
+      let current_hour = get_current_hour()
+      let is_business_hours = current_hour >= parse_time(escalation_matrix.business_hours.start) && 
+                             current_hour <= parse_time(escalation_matrix.business_hours.end)
+      return {
+        is_business_hours: is_business_hours,
+        shift_type: analyst_profile.shift,
+        escalation_modifier: if is_business_hours then 1.0 else 1.2,
+        available_resources: get_available_team_members(analyst_profile.shift)
+      }
+    }
+    
+    triage_priorities: -> mcp.call("ai.generate_triage_priorities", {
+      current_alerts: get_active_alerts(),
+      analyst_specializations: analyst_profile.specializations,
+      threat_landscape: get_current_threat_landscape(),
+      organizational_assets: get_critical_assets()
+    })
+
+  events:
+    on_new_alert(alert_data): {
+      // AI-powered alert classification and initial triage
+      let classification = mcp.call("ai.classify_alert", {
+        alert: alert_data,
+        model: ai_models.alert_classifier,
+        context: {
+          recent_alerts: get_recent_alerts(3600),
+          asset_criticality: get_asset_criticality(alert_data.source_ip),
+          threat_intel: get_relevant_threat_intel(alert_data)
+        }
+      })
+      
+      let false_positive_score = mcp.call("ai.assess_false_positive", {
+        alert: alert_data,
+        model: ai_models.false_positive_detector,
+        historical_data: get_similar_alerts_history(alert_data, 30)
+      })
+      
+      if false_positive_score.confidence > siem_configuration.false_positive_threshold {
+        actions.auto_close_alert(alert_data.id, "AI_FALSE_POSITIVE", false_positive_score.reason)
+        actions.log_decision("auto_closed", alert_data.id, false_positive_score)
+      } else {
+        let threat_score = mcp.call("ai.calculate_threat_score", {
+          alert: alert_data,
+          classification: classification,
+          model: ai_models.threat_scorer,
+          context: shift_context
+        })
+        
+        let enriched_alert = actions.enrich_alert(alert_data, {
+          classification: classification,
+          threat_score: threat_score,
+          false_positive_score: false_positive_score,
+          recommended_playbook: get_matching_playbook(classification.category),
+          analyst_notes: mcp.call("ai.generate_initial_notes", {
+            alert: alert_data,
+            classification: classification,
+            model: ai_models.triage_assistant
+          })
+        })
+        
+        actions.queue_for_analysis(enriched_alert, threat_score.priority)
+        
+        if threat_score.score >= escalation_matrix.l2_threshold {
+          actions.auto_escalate(enriched_alert, "L2", threat_score.score)
+        }
+      }
+    }
+    
+    on_alert_correlation(correlation_event): {
+      // Handle correlated alerts for incident creation
+      let incident_analysis = mcp.call("ai.analyze_correlation", {
+        correlated_alerts: correlation_event.alerts,
+        model: ai_models.correlation_engine,
+        timeframe: correlation_event.timeframe,
+        attack_patterns: get_known_attack_patterns()
+      })
+      
+      if incident_analysis.confidence > 0.6 {
+        let incident = actions.create_incident({
+          title: incident_analysis.suggested_title,
+          severity: incident_analysis.severity,
+          category: incident_analysis.category,
+          alerts: correlation_event.alerts,
+          initial_analysis: incident_analysis,
+          assigned_analyst: analyst_profile.analyst_id,
+          created_at: now()
+        })
+        
+        actions.assign_playbook(incident.id, incident_analysis.recommended_playbook)
+        actions.notify_team("incident_created", incident)
+        
+        if incident_analysis.severity == "critical" {
+          actions.escalate_immediately(incident, "L3", "Critical incident auto-created")
+        }
+      }
+    }
+    
+    on_escalation_timeout(timeout_event): {
+      // Handle cases where alerts haven't been addressed within SLA
+      let alert = get_alert(timeout_event.alert_id)
+      let time_elapsed = now() - alert.created_at
+      
+      if time_elapsed > escalation_matrix.auto_escalation_time {
+        let escalation_analysis = mcp.call("ai.assess_escalation_need", {
+          alert: alert,
+          time_elapsed: time_elapsed,
+          analyst_activity: get_analyst_activity(alert.assigned_analyst),
+          current_workload: analyst_capacity
+        })
+        
+        if escalation_analysis.should_escalate {
+          actions.auto_escalate(alert, escalation_analysis.target_level, 
+                               "SLA timeout - " + escalation_analysis.reason)
+          actions.notify_manager("sla_breach", {
+            alert_id: alert.id,
+            analyst: alert.assigned_analyst,
+            time_elapsed: time_elapsed
+          })
+        }
+      }
+    }
+    
+    on_workload_change(workload_event): {
+      // Dynamic workload balancing
+      let new_capacity = analyst_capacity
+      
+      if new_capacity.overloaded {
+        let redistribution = mcp.call("ai.suggest_workload_redistribution", {
+          current_analyst: analyst_profile,
+          available_analysts: get_available_analysts(),
+          pending_alerts: get_pending_alerts(analyst_profile.analyst_id)
+        })
+        
+        if redistribution.feasible {
+          actions.redistribute_alerts(redistribution.plan)
+          actions.notify_supervisor("workload_redistributed", redistribution)
+        } else {
+          actions.request_additional_resources("analyst_overloaded", {
+            analyst: analyst_profile.analyst_id,
+            current_load: new_capacity.current_load,
+            pending_count: workload_event.pending_count
+          })
+        }
+      }
+    }
+
+  actions:
+    auto_close_alert(alert_id: string, reason: string, details: object) -> {
+      update_alert_status(alert_id, "closed", reason, details)
+      log_audit_event("alert_auto_closed", alert_id, analyst_profile.analyst_id)
+    }
+    
+    enrich_alert(alert: object, enrichment: object) -> {
+      return merge(alert, enrichment, {
+        enriched_at: now(),
+        enriched_by: "ai_system",
+        analyst_assigned: analyst_profile.analyst_id
+      })
+    }
+    
+    queue_for_analysis(alert: object, priority: string) -> {
+      add_to_queue("analyst_queue", alert, {
+        priority: priority,
+        assigned_analyst: analyst_profile.analyst_id,
+        estimated_time: get_playbook_time(alert.recommended_playbook),
+        queued_at: now()
+      })
+    }
+    
+    auto_escalate(item: object, level: string, reason: string) -> {
+      let escalation = create_escalation({
+        item_id: item.id,
+        item_type: item.type || "alert",
+        from_level: "L1",
+        to_level: level,
+        reason: reason,
+        escalated_by: analyst_profile.analyst_id,
+        escalated_at: now(),
+        urgency: calculate_urgency(item, shift_context)
+      })
+      
+      notify_escalation_target(level, escalation)
+      update_item_status(item.id, "escalated")
+    }
+    
+    create_incident(incident_data: object) -> {
+      let incident = {
+        id: generate_incident_id(),
+        ...incident_data,
+        status: "open",
+        sla_deadline: calculate_sla_deadline(incident_data.severity),
+        created_by: analyst_profile.analyst_id
+      }
+      
+      store_incident(incident)
+      return incident
+    }
+    
+    redistribute_alerts(redistribution_plan: object) -> {
+      for reassignment in redistribution_plan.reassignments {
+        update_alert_assignment(reassignment.alert_id, reassignment.new_analyst)
+        notify_analyst(reassignment.new_analyst, "alert_reassigned", reassignment)
+      }
+      
+      log_audit_event("workload_redistributed", redistribution_plan, analyst_profile.analyst_id)
+    }
+
+  constraints:
+    assert analyst_profile.max_capacity > 0
+    assert analyst_profile.current_workload >= 0
+    ensure escalation_matrix.l2_threshold < escalation_matrix.l3_threshold
+    ensure escalation_matrix.l3_threshold < escalation_matrix.manager_threshold
+    assert escalation_matrix.auto_escalation_time > 300
+    ensure siem_configuration.false_positive_threshold >= 0.1 && siem_configuration.false_positive_threshold <= 0.8
+    
+    // Workload constraints
+    ensure analyst_profile.current_workload <= analyst_profile.max_capacity * 1.2
+    assert len(analyst_profile.specializations) > 0
+    
+    // AI model validation
+    ensure ai_models.alert_classifier != ""
+    ensure ai_models.false_positive_detector != ""
+    ensure ai_models.threat_scorer != ""
+
+  lifecycle:
+    on_start: {
+      actions.initialize_analyst_session(analyst_profile)
+      actions.load_active_alerts(analyst_profile.analyst_id)
+      actions.sync_playbooks()
+      log_audit_event("analyst_session_started", analyst_profile.analyst_id)
+    }
+    
+    on_shift_change: {
+      actions.handoff_active_incidents()
+      actions.generate_shift_summary()
+      actions.update_analyst_metrics()
+      log_audit_event("shift_ended", analyst_profile.analyst_id)
+    }
+    
+    on_error: {
+      actions.escalate_system_error()
+      actions.fallback_to_manual_mode()
+      notify_supervisor("system_error", error_details)
+    }
+
+  extensions:
+    use "mcp" {
+      endpoints: ["ai.classify_alert", "ai.assess_false_positive", "ai.calculate_threat_score", 
+                 "ai.analyze_correlation", "ai.generate_initial_notes", "ai.assess_escalation_need",
+                 "ai.suggest_workload_redistribution", "ai.generate_triage_priorities"]
+    }
+    
+    use "siem_integration" {
+      platform: siem_configuration.platform
+      api_version: "v2"
+    }
+    
+    use "notification_system" {
+      channels: ["email", "slack", "sms", "dashboard"]
+      escalation_policies: true
+    }
+}
