@@ -1,0 +1,465 @@
+spec "IncidentResponseCommander" v2.0 {
+  description: "AI-enhanced incident response command and control system for orchestrating major security incidents."
+
+  inputs:
+    commander_profile: object {
+      commander_id: string { validate: /^IRC[0-9]{3}$/ }
+      certification_level: enum("junior", "senior", "expert") { default: "senior" }
+      experience_years: int { default: 5 }
+      specializations: array<string> { default: ["malware", "data_breach", "apt", "ransomware"] }
+      current_incidents: array<string> { default: [] }
+      max_concurrent: int { default: 3, description: "max concurrent major incidents" }
+      on_call_status: bool { default: true }
+    }
+    
+    incident_classification: object {
+      severity_levels: array<string> { default: ["low", "medium", "high", "critical", "catastrophic"] }
+      impact_categories: array<string> { default: ["confidentiality", "integrity", "availability", "reputation"] }
+      urgency_matrix: object {
+        critical_business_hours: int { default: 15, description: "minutes to initial response" }
+        critical_after_hours: int { default: 30, description: "minutes to initial response" }
+        high_business_hours: int { default: 60, description: "minutes to initial response" }
+        high_after_hours: int { default: 120, description: "minutes to initial response" }
+      }
+      escalation_triggers: array<string> { default: ["data_exfiltration", "system_compromise", "service_outage", "regulatory_breach"] }
+    }
+    
+    response_team: object {
+      core_team: array<object> {
+        schema: {
+          member_id: string,
+          role: enum("technical_lead", "communications", "legal", "forensics", "business_liaison"),
+          contact_info: object {
+            primary_phone: string,
+            secondary_phone: string,
+            email: string,
+            slack_id: string
+          },
+          availability: enum("24x7", "business_hours", "on_call"),
+          backup_members: array<string>
+        }
+      }
+      external_contacts: array<object> {
+        schema: {
+          organization: string,
+          contact_type: enum("law_enforcement", "regulatory", "vendor", "customer", "media"),
+          contact_person: string,
+          phone: string,
+          email: string,
+          escalation_threshold: enum("medium", "high", "critical")
+        }
+      }
+    }
+    
+    communication_plan: object {
+      internal_channels: array<string> { default: ["slack", "teams", "conference_bridge", "war_room"] }
+      external_channels: array<string> { default: ["email", "phone", "secure_portal"] }
+      update_frequencies: object {
+        executive: int { default: 3600, description: "seconds between executive updates" }
+        technical_team: int { default: 1800, description: "seconds between team updates" }
+        stakeholders: int { default: 7200, description: "seconds between stakeholder updates" }
+      }
+      templates: array<object> {
+        schema: {
+          template_id: string,
+          audience: enum("executive", "technical", "customer", "regulatory", "media"),
+          format: enum("email", "dashboard", "report", "presentation"),
+          auto_generate: bool
+        }
+      }
+    }
+    
+    ai_models: object {
+      impact_assessor: string { default: "impact_assessment_v3.1" }
+      strategy_advisor: string { default: "response_strategy_v2.7" }
+      communication_generator: string { default: "comm_generator_v1.8" }
+      timeline_analyzer: string { default: "timeline_analysis_v2.3" }
+      resource_optimizer: string { default: "resource_optimizer_v1.5" }
+    }
+    
+    playbooks: object {
+      incident_types: array<object> {
+        schema: {
+          type: string,
+          playbook_id: string,
+          estimated_duration: int { description: "hours" },
+          required_roles: array<string>,
+          critical_actions: array<string>,
+          communication_requirements: array<string>
+        }
+      }
+      regulatory_requirements: array<object> {
+        schema: {
+          regulation: enum("gdpr", "hipaa", "sox", "pci_dss", "ccpa"),
+          notification_timeline: int { description: "hours" },
+          required_documentation: array<string>,
+          reporting_requirements: array<string>
+        }
+      }
+    }
+
+  computed:
+    command_capacity: -> {
+      let active_count = len(commander_profile.current_incidents)
+      let utilization = active_count / commander_profile.max_concurrent
+      return {
+        active_incidents: active_count,
+        capacity_utilization: utilization,
+        available_slots: commander_profile.max_concurrent - active_count,
+        overloaded: utilization > 0.8,
+        stress_indicator: if utilization > 1.0 then "critical" else if utilization > 0.8 then "high" else "normal"
+      }
+    }
+    
+    team_readiness: -> {
+      let available_members = []
+      for member in response_team.core_team {
+        if is_available(member.member_id, now()) {
+          available_members = append(available_members, member)
+        }
+      }
+      return {
+        available_count: len(available_members),
+        total_count: len(response_team.core_team),
+        readiness_percentage: len(available_members) / len(response_team.core_team) * 100,
+        missing_roles: get_missing_critical_roles(available_members),
+        backup_activation_needed: len(available_members) < len(response_team.core_team) * 0.7
+      }
+    }
+    
+    regulatory_obligations: -> mcp.call("ai.assess_regulatory_requirements", {
+      incident_details: get_active_incidents(),
+      organization_profile: get_organization_compliance_profile(),
+      jurisdictions: get_operational_jurisdictions()
+    })
+
+  events:
+    on_major_incident_declared(incident_data): {
+      // Activate incident command structure
+      let impact_assessment = mcp.call("ai.assess_incident_impact", {
+        incident: incident_data,
+        model: ai_models.impact_assessor,
+        context: {
+          business_context: get_business_context(),
+          asset_criticality: get_affected_assets_criticality(incident_data.affected_systems),
+          threat_landscape: get_current_threat_landscape(),
+          historical_incidents: get_similar_incidents(incident_data.type, 24)
+        }
+      })
+      
+      let response_strategy = mcp.call("ai.generate_response_strategy", {
+        incident: incident_data,
+        impact_assessment: impact_assessment,
+        model: ai_models.strategy_advisor,
+        available_resources: team_readiness,
+        regulatory_context: regulatory_obligations
+      })
+      
+      let incident_command = actions.establish_incident_command({
+        incident_id: incident_data.id,
+        commander: commander_profile.commander_id,
+        severity: impact_assessment.severity,
+        strategy: response_strategy,
+        estimated_duration: response_strategy.estimated_duration,
+        required_team: response_strategy.required_roles
+      })
+      
+      actions.activate_response_team(incident_command.required_team)
+      actions.establish_communications(incident_data.id, impact_assessment.severity)
+      
+      if impact_assessment.severity in ["critical", "catastrophic"] {
+        actions.notify_executives(incident_data, impact_assessment, "immediate")
+        actions.activate_crisis_protocols(incident_data.id)
+      }
+      
+      actions.initiate_timeline_tracking(incident_data.id, now())
+      
+      // Check regulatory notification requirements
+      let regulatory_analysis = mcp.call("ai.analyze_regulatory_impact", {
+        incident: incident_data,
+        impact_assessment: impact_assessment,
+        regulations: playbooks.regulatory_requirements
+      })
+      
+      if regulatory_analysis.notification_required {
+        actions.schedule_regulatory_notifications(regulatory_analysis.requirements)
+      }
+    }
+    
+    on_incident_escalation(escalation_event): {
+      // Handle incident severity escalation
+      let escalation_analysis = mcp.call("ai.analyze_escalation", {
+        incident_id: escalation_event.incident_id,
+        previous_severity: escalation_event.from_severity,
+        new_severity: escalation_event.to_severity,
+        escalation_reason: escalation_event.reason,
+        model: ai_models.impact_assessor
+      })
+      
+      if escalation_analysis.strategy_change_required {
+        let updated_strategy = mcp.call("ai.update_response_strategy", {
+          incident_id: escalation_event.incident_id,
+          new_severity: escalation_event.to_severity,
+          current_progress: get_incident_progress(escalation_event.incident_id),
+          model: ai_models.strategy_advisor
+        })
+        
+        actions.update_incident_strategy(escalation_event.incident_id, updated_strategy)
+        actions.reallocate_resources(escalation_event.incident_id, updated_strategy.resource_requirements)
+      }
+      
+      if escalation_event.to_severity == "catastrophic" {
+        actions.activate_business_continuity_plan(escalation_event.incident_id)
+        actions.notify_board_of_directors(escalation_event.incident_id, escalation_analysis)
+      }
+      
+      actions.update_all_stakeholders("escalation", escalation_event, escalation_analysis)
+    }
+    
+    on_communication_schedule(comm_event): {
+      // Handle scheduled communications
+      let incident = get_incident(comm_event.incident_id)
+      let current_status = get_incident_status(comm_event.incident_id)
+      
+      let communication_content = mcp.call("ai.generate_status_communication", {
+        incident: incident,
+        current_status: current_status,
+        audience: comm_event.audience,
+        model: ai_models.communication_generator,
+        templates: filter_templates(communication_plan.templates, comm_event.audience)
+      })
+      
+      actions.send_status_update(comm_event.audience, communication_content, comm_event.channel)
+      
+      // Schedule next communication
+      let next_update_time = now() + get_update_frequency(comm_event.audience)
+      actions.schedule_communication(comm_event.incident_id, comm_event.audience, next_update_time)
+    }
+    
+    on_resource_constraint(constraint_event): {
+      // Handle resource availability issues
+      let resource_analysis = mcp.call("ai.analyze_resource_constraints", {
+        constraint: constraint_event,
+        active_incidents: commander_profile.current_incidents,
+        available_resources: get_available_resources(),
+        model: ai_models.resource_optimizer
+      })
+      
+      if resource_analysis.critical_shortage {
+        let optimization_plan = mcp.call("ai.optimize_resource_allocation", {
+          incidents: commander_profile.current_incidents,
+          constraints: constraint_event,
+          priorities: get_incident_priorities(),
+          model: ai_models.resource_optimizer
+        })
+        
+        actions.implement_resource_optimization(optimization_plan)
+        actions.notify_leadership("resource_shortage", resource_analysis)
+        
+        if optimization_plan.external_help_needed {
+          actions.request_external_assistance(optimization_plan.external_requirements)
+        }
+      }
+    }
+    
+    on_incident_resolution(resolution_event): {
+      // Handle incident closure and post-incident activities
+      let final_timeline = mcp.call("ai.generate_incident_timeline", {
+        incident_id: resolution_event.incident_id,
+        model: ai_models.timeline_analyzer,
+        include_lessons_learned: true
+      })
+      
+      let post_incident_analysis = mcp.call("ai.conduct_post_incident_analysis", {
+        incident_id: resolution_event.incident_id,
+        timeline: final_timeline,
+        response_effectiveness: resolution_event.metrics,
+        model: ai_models.impact_assessor
+      })
+      
+      actions.generate_final_report(resolution_event.incident_id, final_timeline, post_incident_analysis)
+      actions.schedule_lessons_learned_session(resolution_event.incident_id, post_incident_analysis.recommendations)
+      actions.update_playbooks(post_incident_analysis.playbook_improvements)
+      
+      // Notify all stakeholders of resolution
+      actions.send_resolution_notification(resolution_event.incident_id, final_timeline)
+      
+      // Release resources
+      actions.deactivate_incident_command(resolution_event.incident_id)
+      actions.release_response_team(resolution_event.incident_id)
+    }
+
+  actions:
+    establish_incident_command(command_structure: object) -> {
+      let command_post = create_incident_command_post({
+        incident_id: command_structure.incident_id,
+        commander: command_structure.commander,
+        established_at: now(),
+        severity: command_structure.severity,
+        strategy: command_structure.strategy
+      })
+      
+      log_audit_event("incident_command_established", command_structure.incident_id, commander_profile.commander_id)
+      return command_post
+    }
+    
+    activate_response_team(required_roles: array<string>) -> {
+      let activated_members = []
+      for role in required_roles {
+        let member = get_available_member_by_role(role)
+        if member {
+          notify_team_member(member.member_id, "incident_activation", {
+            role: role,
+            urgency: "immediate",
+            contact_method: "all_channels"
+          })
+          activated_members = append(activated_members, member)
+        } else {
+          let backup = get_backup_member_by_role(role)
+          if backup {
+            notify_team_member(backup.member_id, "backup_activation", {
+              role: role,
+              reason: "primary_unavailable"
+            })
+            activated_members = append(activated_members, backup)
+          }
+        }
+      }
+      
+      return activated_members
+    }
+    
+    establish_communications(incident_id: string, severity: string) -> {
+      // Set up communication channels based on severity
+      let channels = if severity in ["critical", "catastrophic"] then 
+                      communication_plan.internal_channels 
+                    else 
+                      filter(communication_plan.internal_channels, ["slack", "teams"])
+      
+      for channel in channels {
+        create_incident_channel(incident_id, channel, {
+          auto_archive: false,
+          retention_policy: "indefinite",
+          access_level: get_access_level_for_severity(severity)
+        })
+      }
+      
+      // Schedule initial communications
+      for audience in ["executive", "technical_team", "stakeholders"] {
+        let frequency = communication_plan.update_frequencies[audience]
+        schedule_communication(incident_id, audience, now() + frequency)
+      }
+    }
+    
+    notify_executives(incident: object, assessment: object, urgency: string) -> {
+      let executive_brief = generate_executive_summary(incident, assessment)
+      
+      for executive in get_executive_contacts() {
+        send_notification(executive, {
+          subject: "CRITICAL SECURITY INCIDENT - Immediate Attention Required",
+          content: executive_brief,
+          urgency: urgency,
+          channels: ["email", "sms", "phone"],
+          delivery_confirmation: true
+        })
+      }
+    }
+    
+    schedule_regulatory_notifications(requirements: array<object>) -> {
+      for requirement in requirements {
+        let notification_time = now() + (requirement.timeline_hours * 3600)
+        schedule_task("regulatory_notification", notification_time, {
+          regulation: requirement.regulation,
+          recipient: requirement.authority,
+          template: requirement.template,
+          incident_id: requirement.incident_id
+        })
+      }
+    }
+    
+    update_incident_strategy(incident_id: string, new_strategy: object) -> {
+      update_incident_record(incident_id, {
+        strategy: new_strategy,
+        strategy_updated_at: now(),
+        strategy_version: increment_strategy_version(incident_id)
+      })
+      
+      notify_response_team(incident_id, "strategy_update", new_strategy)
+      log_audit_event("strategy_updated", incident_id, commander_profile.commander_id)
+    }
+    
+    generate_final_report(incident_id: string, timeline: object, analysis: object) -> {
+      let report = compile_incident_report({
+        incident_id: incident_id,
+        timeline: timeline,
+        analysis: analysis,
+        commander: commander_profile.commander_id,
+        generated_at: now(),
+        classification: "confidential"
+      })
+      
+      store_incident_report(report)
+      distribute_report(report, get_report_distribution_list(incident_id))
+    }
+
+  constraints:
+    assert commander_profile.max_concurrent > 0
+    assert commander_profile.experience_years >= 0
+    ensure len(commander_profile.specializations) > 0
+    assert len(response_team.core_team) >= 3
+    ensure communication_plan.update_frequencies.executive > 0
+    ensure communication_plan.update_frequencies.technical_team > 0
+    
+    // Capacity constraints
+    ensure len(commander_profile.current_incidents) <= commander_profile.max_concurrent * 1.2
+    assert incident_classification.urgency_matrix.critical_business_hours < incident_classification.urgency_matrix.critical_after_hours
+    
+    // Communication constraints
+    ensure len(communication_plan.internal_channels) > 0
+    ensure len(communication_plan.templates) > 0
+
+  lifecycle:
+    on_start: {
+      actions.initialize_command_center(commander_profile)
+      actions.verify_team_availability()
+      actions.test_communication_channels()
+      log_audit_event("commander_session_started", commander_profile.commander_id)
+    }
+    
+    on_shift_change: {
+      actions.conduct_command_handover()
+      actions.brief_incoming_commander()
+      actions.transfer_active_incidents()
+      log_audit_event("command_transferred", commander_profile.commander_id)
+    }
+    
+    on_error: {
+      actions.activate_backup_commander()
+      actions.escalate_system_failure()
+      notify_leadership("command_system_error", error_details)
+    }
+
+  extensions:
+    use "mcp" {
+      endpoints: ["ai.assess_incident_impact", "ai.generate_response_strategy", "ai.analyze_regulatory_impact",
+                 "ai.analyze_escalation", "ai.update_response_strategy", "ai.generate_status_communication",
+                 "ai.analyze_resource_constraints", "ai.optimize_resource_allocation", "ai.generate_incident_timeline",
+                 "ai.conduct_post_incident_analysis", "ai.assess_regulatory_requirements"]
+    }
+    
+    use "crisis_management" {
+      protocols: ["business_continuity", "disaster_recovery", "emergency_communications"]
+      escalation_matrix: true
+    }
+    
+    use "regulatory_compliance" {
+      frameworks: ["gdpr", "hipaa", "sox", "pci_dss", "ccpa"]
+      auto_reporting: true
+    }
+    
+    use "communication_platform" {
+      channels: communication_plan.internal_channels
+      external_integration: true
+      audit_trail: true
+    }
+}

@@ -1,0 +1,69 @@
+spec "LivingOffTheLandTechniques" v2.8 {
+  description: "Advanced stealth techniques using legitimate system tools for expert red team operations with AI-powered evasion and fileless attacks."
+
+  inputs:
+    target_environment: string
+    target_os: string { default: "windows" }
+    privilege_level: string { default: "user" }
+    stealth_requirement: string { default: "high" }
+    detection_avoidance: bool { default: true }
+    
+    available_tools: string
+    system_binaries: string
+    scripting_engines: string
+    admin_tools: string
+    
+    memory_operations: bool { default: true }
+    registry_operations: bool { default: true }
+    wmi_operations: bool { default: true }
+    powershell_operations: bool { default: true }
+    
+    ai_models: string
+    evasion_techniques: string
+    obfuscation_methods: string
+    
+    compliance_mode: bool { default: true }
+    logging_level: string { default: "minimal" }
+    audit_trail: bool { default: true }
+
+  computed:
+    execution_start_time: -> now()
+    risk_assessment: -> calculate_risk()
+    stealth_score: -> evaluate_stealth()
+    
+  events:
+    on_create(operation): initialize_lotl_operation
+    on_change(detection_avoidance): adjust_stealth_level
+    on_error(detection): execute_evasion_protocol
+
+  actions:
+    initialize_lotl_operation {
+      description: "Initialize living-off-the-land operation"
+      mcp_call: "lotl/initialize"
+      parameters: {
+        target_environment: target_environment,
+        target_os: target_os,
+        privilege_level: privilege_level,
+        stealth_requirement: stealth_requirement,
+        detection_avoidance: detection_avoidance
+      }
+    }
+
+    adjust_stealth_level {
+      description: "Adjust stealth techniques based on detection requirements"
+      mcp_call: "lotl/adjust_stealth"
+      parameters: {
+        detection_avoidance: detection_avoidance,
+        stealth_requirement: stealth_requirement
+      }
+    }
+
+    execute_evasion_protocol {
+      description: "Execute advanced evasion techniques"
+      mcp_call: "lotl/evasion"
+      parameters: {
+        evasion_techniques: evasion_techniques,
+        obfuscation_methods: obfuscation_methods
+      }
+    }
+}

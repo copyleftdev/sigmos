@@ -1,0 +1,534 @@
+spec "DigitalForensicsAnalyst" v2.3 {
+  description: "AI-enhanced digital forensics platform for evidence collection, analysis, and timeline reconstruction."
+
+  inputs:
+    analyst_profile: object {
+      analyst_id: string { validate: /^DFA[0-9]{3}$/ }
+      certification_level: enum("junior", "senior", "expert", "lead") { default: "senior" }
+      specializations: array<string> { default: ["disk_forensics", "network_forensics", "memory_analysis", "mobile_forensics"] }
+      experience_years: int { default: 5 }
+      active_cases: array<string> { default: [] }
+      max_concurrent_cases: int { default: 3 }
+      clearance_level: enum("public", "confidential", "secret", "top_secret") { default: "confidential" }
+    }
+    
+    forensics_lab: object {
+      equipment: array<object> {
+        schema: {
+          device_id: string,
+          device_type: enum("write_blocker", "imaging_station", "analysis_workstation", "mobile_extraction", "network_tap"),
+          status: enum("available", "in_use", "maintenance", "offline"),
+          capabilities: array<string>,
+          last_calibration: string,
+          chain_of_custody_required: bool
+        }
+      }
+      software_tools: array<object> {
+        schema: {
+          tool_name: string,
+          tool_type: enum("imaging", "analysis", "recovery", "timeline", "reporting", "visualization"),
+          version: string,
+          license_status: enum("active", "expired", "trial"),
+          supported_formats: array<string>,
+          ai_enhanced: bool
+        }
+      }
+      storage_capacity: object {
+        total_tb: float { default: 100.0 }
+        available_tb: float { default: 80.0 }
+        evidence_retention_days: int { default: 2555, description: "7 years default" }
+        backup_redundancy: int { default: 3 }
+      }
+    }
+    
+    case_management: object {
+      evidence_tracking: object {
+        chain_of_custody_required: bool { default: true }
+        digital_signatures: bool { default: true }
+        hash_verification: bool { default: true }
+        audit_trail: bool { default: true }
+      }
+      legal_requirements: object {
+        jurisdiction: string { default: "federal" }
+        admissibility_standards: array<string> { default: ["daubert", "frye", "federal_rules"] }
+        retention_requirements: array<string> { default: ["criminal", "civil", "regulatory"] }
+        privacy_compliance: array<string> { default: ["gdpr", "ccpa", "hipaa"] }
+      }
+      reporting_standards: array<string> { default: ["nist", "iso27037", "acpo", "swgde"] }
+    }
+    
+    ai_models: object {
+      artifact_classifier: string { default: "artifact_classification_v3.4" }
+      timeline_reconstructor: string { default: "timeline_reconstruction_v2.8" }
+      evidence_correlator: string { default: "evidence_correlation_v4.1" }
+      anomaly_detector: string { default: "forensic_anomaly_v2.6" }
+      pattern_matcher: string { default: "pattern_matching_v3.2" }
+      report_generator: string { default: "forensic_report_v1.9" }
+    }
+    
+    analysis_frameworks: object {
+      investigation_methodologies: array<string> { default: ["hypothesis_driven", "timeline_based", "artifact_centric", "behavior_analysis"] }
+      evidence_categories: array<string> { default: ["system_artifacts", "user_artifacts", "network_artifacts", "application_data", "deleted_data"] }
+      analysis_priorities: object {
+        volatile_data: int { default: 1, description: "highest priority" }
+        system_logs: int { default: 2 }
+        user_data: int { default: 3 }
+        deleted_artifacts: int { default: 4 }
+        slack_space: int { default: 5, description: "lowest priority" }
+      }
+    }
+
+  computed:
+    analyst_workload: -> {
+      let active_count = len(analyst_profile.active_cases)
+      let utilization = active_count / analyst_profile.max_concurrent_cases
+      return {
+        active_cases: active_count,
+        capacity_utilization: utilization,
+        available_slots: analyst_profile.max_concurrent_cases - active_count,
+        overloaded: utilization > 0.8,
+        case_complexity_score: calculate_case_complexity_average(analyst_profile.active_cases)
+      }
+    }
+    
+    lab_resources: -> {
+      let available_equipment = filter(forensics_lab.equipment, lambda x: x.status == "available")
+      let storage_utilization = (forensics_lab.storage_capacity.total_tb - forensics_lab.storage_capacity.available_tb) / forensics_lab.storage_capacity.total_tb
+      return {
+        available_equipment_count: len(available_equipment),
+        total_equipment_count: len(forensics_lab.equipment),
+        equipment_availability: len(available_equipment) / len(forensics_lab.equipment) * 100,
+        storage_utilization_percent: storage_utilization * 100,
+        storage_critical: storage_utilization > 0.9,
+        maintenance_due: filter(forensics_lab.equipment, lambda x: needs_maintenance(x.last_calibration))
+      }
+    }
+    
+    case_priorities: -> mcp.call("ai.analyze_case_priorities", {
+      active_cases: analyst_profile.active_cases,
+      legal_deadlines: get_legal_deadlines(),
+      evidence_volatility: assess_evidence_volatility(),
+      resource_availability: lab_resources
+    })
+
+  events:
+    on_evidence_received(evidence_data): {
+      // Handle new evidence intake and initial processing
+      let evidence_assessment = mcp.call("ai.assess_evidence", {
+        evidence: evidence_data,
+        model: ai_models.artifact_classifier,
+        context: {
+          case_context: get_case_context(evidence_data.case_id),
+          legal_requirements: case_management.legal_requirements,
+          analyst_specializations: analyst_profile.specializations,
+          lab_capabilities: forensics_lab.software_tools
+        }
+      })
+      
+      let chain_of_custody = actions.establish_chain_of_custody({
+        evidence_id: evidence_data.id,
+        received_by: analyst_profile.analyst_id,
+        received_at: now(),
+        source: evidence_data.source,
+        condition: evidence_data.condition,
+        hash_values: evidence_data.hash_values
+      })
+      
+      if evidence_assessment.volatile_data_present {
+        let volatile_extraction = actions.prioritize_volatile_extraction({
+          evidence_id: evidence_data.id,
+          volatile_types: evidence_assessment.volatile_data_types,
+          urgency: "immediate",
+          assigned_analyst: analyst_profile.analyst_id
+        })
+        
+        actions.allocate_priority_resources(evidence_data.id, volatile_extraction.required_tools)
+      }
+      
+      let imaging_plan = mcp.call("ai.generate_imaging_plan", {
+        evidence: evidence_data,
+        assessment: evidence_assessment,
+        available_tools: filter(forensics_lab.equipment, lambda x: x.status == "available"),
+        model: ai_models.pattern_matcher
+      })
+      
+      actions.schedule_evidence_imaging(evidence_data.id, imaging_plan)
+      
+      if evidence_assessment.complexity_score > 0.8 {
+        actions.request_specialist_consultation(evidence_data.id, evidence_assessment.required_specializations)
+      }
+    }
+    
+    on_imaging_complete(imaging_event): {
+      // Handle completed evidence imaging and begin analysis
+      let imaging_verification = actions.verify_imaging_integrity({
+        evidence_id: imaging_event.evidence_id,
+        original_hashes: imaging_event.original_hashes,
+        image_hashes: imaging_event.image_hashes,
+        imaging_tool: imaging_event.tool_used,
+        imaging_analyst: imaging_event.analyst_id
+      })
+      
+      if imaging_verification.integrity_verified {
+        let analysis_plan = mcp.call("ai.generate_analysis_plan", {
+          evidence_id: imaging_event.evidence_id,
+          imaging_metadata: imaging_event.metadata,
+          case_objectives: get_case_objectives(imaging_event.case_id),
+          model: ai_models.artifact_classifier,
+          frameworks: analysis_frameworks.investigation_methodologies
+        })
+        
+        let analysis_session = actions.initiate_analysis({
+          evidence_id: imaging_event.evidence_id,
+          plan: analysis_plan,
+          analyst: analyst_profile.analyst_id,
+          priority: analysis_plan.priority,
+          estimated_hours: analysis_plan.estimated_duration
+        })
+        
+        actions.execute_automated_analysis(analysis_session.id, analysis_plan.automated_steps)
+        
+        if analysis_plan.parallel_processing_recommended {
+          actions.distribute_analysis_tasks(analysis_session.id, analysis_plan.parallel_tasks)
+        }
+      } else {
+        actions.escalate_imaging_failure(imaging_event.evidence_id, imaging_verification.failure_reason)
+        actions.re_image_evidence(imaging_event.evidence_id, imaging_verification.recommended_approach)
+      }
+    }
+    
+    on_artifact_discovered(artifact_event): {
+      // Handle discovery of forensic artifacts during analysis
+      let artifact_analysis = mcp.call("ai.analyze_artifact", {
+        artifact: artifact_event.artifact_data,
+        model: ai_models.artifact_classifier,
+        context: {
+          case_context: get_case_context(artifact_event.case_id),
+          timeline_context: get_timeline_context(artifact_event.timestamp),
+          related_artifacts: get_related_artifacts(artifact_event.artifact_data.type),
+          investigation_focus: get_investigation_focus(artifact_event.case_id)
+        }
+      })
+      
+      if artifact_analysis.significance_score > 0.7 {
+        let correlation_analysis = mcp.call("ai.correlate_evidence", {
+          new_artifact: artifact_event.artifact_data,
+          existing_evidence: get_case_evidence(artifact_event.case_id),
+          model: ai_models.evidence_correlator,
+          correlation_types: ["temporal", "spatial", "causal", "behavioral"]
+        })
+        
+        if correlation_analysis.strong_correlations_found {
+          actions.update_case_timeline(artifact_event.case_id, correlation_analysis.timeline_updates)
+          actions.generate_correlation_report(artifact_event.case_id, correlation_analysis)
+          
+          if correlation_analysis.breakthrough_potential {
+            actions.notify_case_team("significant_correlation", correlation_analysis)
+            actions.prioritize_related_analysis(artifact_event.case_id, correlation_analysis.follow_up_recommendations)
+          }
+        }
+        
+        let timeline_impact = mcp.call("ai.assess_timeline_impact", {
+          artifact: artifact_event.artifact_data,
+          current_timeline: get_case_timeline(artifact_event.case_id),
+          model: ai_models.timeline_reconstructor
+        })
+        
+        if timeline_impact.reconstruction_needed {
+          actions.trigger_timeline_reconstruction(artifact_event.case_id, timeline_impact.reconstruction_scope)
+        }
+      }
+      
+      actions.catalog_artifact({
+        artifact: artifact_event.artifact_data,
+        analysis: artifact_analysis,
+        case_id: artifact_event.case_id,
+        discovered_by: analyst_profile.analyst_id,
+        discovery_method: artifact_event.discovery_method
+      })
+    }
+    
+    on_timeline_reconstruction_request(timeline_request): {
+      // Handle timeline reconstruction requests
+      let reconstruction_analysis = mcp.call("ai.reconstruct_timeline", {
+        case_id: timeline_request.case_id,
+        evidence_artifacts: get_all_case_artifacts(timeline_request.case_id),
+        model: ai_models.timeline_reconstructor,
+        reconstruction_scope: timeline_request.scope,
+        confidence_threshold: 0.6,
+        temporal_resolution: timeline_request.resolution || "minute"
+      })
+      
+      let timeline_validation = mcp.call("ai.validate_timeline", {
+        reconstructed_timeline: reconstruction_analysis.timeline,
+        evidence_sources: reconstruction_analysis.evidence_sources,
+        model: ai_models.anomaly_detector,
+        validation_criteria: case_management.reporting_standards
+      })
+      
+      if timeline_validation.timeline_valid {
+        let visual_timeline = actions.generate_timeline_visualization({
+          timeline_data: reconstruction_analysis.timeline,
+          validation_results: timeline_validation,
+          case_id: timeline_request.case_id,
+          format: "interactive",
+          include_confidence_indicators: true
+        })
+        
+        actions.update_case_timeline(timeline_request.case_id, reconstruction_analysis.timeline)
+        actions.generate_timeline_report(timeline_request.case_id, {
+          timeline: reconstruction_analysis.timeline,
+          validation: timeline_validation,
+          visualization: visual_timeline,
+          analyst: analyst_profile.analyst_id
+        })
+        
+        if timeline_validation.anomalies_detected {
+          actions.investigate_timeline_anomalies(timeline_request.case_id, timeline_validation.anomalies)
+        }
+      } else {
+        actions.escalate_timeline_issues(timeline_request.case_id, timeline_validation.validation_failures)
+      }
+    }
+    
+    on_analysis_complete(completion_event): {
+      // Handle completion of forensic analysis
+      let final_analysis = mcp.call("ai.compile_final_analysis", {
+        case_id: completion_event.case_id,
+        all_artifacts: get_case_artifacts(completion_event.case_id),
+        timeline: get_case_timeline(completion_event.case_id),
+        model: ai_models.evidence_correlator,
+        legal_standards: case_management.legal_requirements.admissibility_standards
+      })
+      
+      let report_generation = mcp.call("ai.generate_forensic_report", {
+        analysis: final_analysis,
+        case_details: get_case_details(completion_event.case_id),
+        model: ai_models.report_generator,
+        reporting_standards: case_management.reporting_standards,
+        audience: completion_event.report_audience || "legal"
+      })
+      
+      let expert_report = actions.compile_expert_report({
+        case_id: completion_event.case_id,
+        analysis: final_analysis,
+        report_content: report_generation,
+        analyst: analyst_profile.analyst_id,
+        peer_review_required: completion_event.peer_review_required || true
+      })
+      
+      if completion_event.peer_review_required {
+        actions.request_peer_review(expert_report.id, get_qualified_reviewers(analyst_profile.specializations))
+      }
+      
+      actions.finalize_chain_of_custody(completion_event.case_id)
+      actions.archive_case_evidence(completion_event.case_id, case_management.evidence_tracking.retention_requirements)
+      
+      if final_analysis.criminal_activity_indicators {
+        actions.prepare_court_testimony_materials(completion_event.case_id, final_analysis)
+      }
+    }
+
+  actions:
+    establish_chain_of_custody(custody_data: object) -> {
+      let custody_record = create_custody_record({
+        evidence_id: custody_data.evidence_id,
+        received_by: custody_data.received_by,
+        received_at: custody_data.received_at,
+        source: custody_data.source,
+        condition: custody_data.condition,
+        hash_values: custody_data.hash_values,
+        digital_signature: generate_digital_signature(custody_data),
+        custody_chain: initialize_custody_chain(custody_data.evidence_id)
+      })
+      
+      store_custody_record(custody_record)
+      log_audit_event("custody_established", custody_data.evidence_id, analyst_profile.analyst_id)
+      return custody_record
+    }
+    
+    prioritize_volatile_extraction(extraction_config: object) -> {
+      let volatile_session = create_volatile_extraction_session({
+        evidence_id: extraction_config.evidence_id,
+        volatile_types: extraction_config.volatile_types,
+        urgency: extraction_config.urgency,
+        assigned_analyst: extraction_config.assigned_analyst,
+        started_at: now(),
+        tools_required: get_volatile_extraction_tools(extraction_config.volatile_types)
+      })
+      
+      reserve_priority_equipment(volatile_session.tools_required)
+      notify_lab_team("volatile_extraction_priority", volatile_session)
+      return volatile_session
+    }
+    
+    verify_imaging_integrity(verification_data: object) -> {
+      let hash_comparison = compare_hashes(verification_data.original_hashes, verification_data.image_hashes)
+      let integrity_check = validate_image_integrity(verification_data.evidence_id, verification_data.imaging_tool)
+      
+      let verification_result = {
+        integrity_verified: hash_comparison.match && integrity_check.valid,
+        hash_match: hash_comparison.match,
+        tool_validation: integrity_check.valid,
+        verification_timestamp: now(),
+        verified_by: analyst_profile.analyst_id
+      }
+      
+      if !verification_result.integrity_verified {
+        verification_result.failure_reason = determine_failure_reason(hash_comparison, integrity_check)
+        verification_result.recommended_approach = suggest_remediation(verification_result.failure_reason)
+      }
+      
+      log_audit_event("imaging_verification", verification_data.evidence_id, verification_result)
+      return verification_result
+    }
+    
+    initiate_analysis(analysis_config: object) -> {
+      let analysis_session = create_analysis_session({
+        id: generate_analysis_id(),
+        evidence_id: analysis_config.evidence_id,
+        plan: analysis_config.plan,
+        analyst: analysis_config.analyst,
+        priority: analysis_config.priority,
+        status: "active",
+        started_at: now(),
+        estimated_completion: now() + (analysis_config.estimated_hours * 3600)
+      })
+      
+      allocate_analysis_resources(analysis_session.id, analysis_config.plan.required_tools)
+      log_audit_event("analysis_initiated", analysis_config.evidence_id, analyst_profile.analyst_id)
+      return analysis_session
+    }
+    
+    catalog_artifact(catalog_data: object) -> {
+      let artifact_record = create_artifact_record({
+        artifact: catalog_data.artifact,
+        analysis: catalog_data.analysis,
+        case_id: catalog_data.case_id,
+        discovered_by: catalog_data.discovered_by,
+        discovery_method: catalog_data.discovery_method,
+        cataloged_at: now(),
+        hash_value: calculate_artifact_hash(catalog_data.artifact),
+        metadata: extract_artifact_metadata(catalog_data.artifact)
+      })
+      
+      store_artifact_record(artifact_record)
+      update_case_artifact_index(catalog_data.case_id, artifact_record)
+      
+      if catalog_data.analysis.significance_score > 0.8 {
+        flag_significant_artifact(artifact_record.id)
+      }
+    }
+    
+    generate_timeline_visualization(viz_config: object) -> {
+      let visualization = create_interactive_timeline({
+        timeline_data: viz_config.timeline_data,
+        validation_results: viz_config.validation_results,
+        format: viz_config.format,
+        confidence_indicators: viz_config.include_confidence_indicators,
+        case_id: viz_config.case_id,
+        generated_by: analyst_profile.analyst_id,
+        generated_at: now()
+      })
+      
+      store_visualization(visualization)
+      return visualization
+    }
+    
+    compile_expert_report(report_config: object) -> {
+      let expert_report = create_expert_report({
+        case_id: report_config.case_id,
+        analysis: report_config.analysis,
+        content: report_config.report_content,
+        analyst: report_config.analyst,
+        analyst_qualifications: get_analyst_qualifications(report_config.analyst),
+        methodology: document_analysis_methodology(report_config.case_id),
+        tools_used: get_case_tools_used(report_config.case_id),
+        peer_review_required: report_config.peer_review_required,
+        created_at: now(),
+        report_version: "1.0"
+      })
+      
+      store_expert_report(expert_report)
+      
+      if report_config.peer_review_required {
+        set_report_status(expert_report.id, "pending_review")
+      } else {
+        set_report_status(expert_report.id, "final")
+      }
+      
+      return expert_report
+    }
+
+  constraints:
+    assert analyst_profile.max_concurrent_cases > 0
+    assert analyst_profile.max_concurrent_cases <= 5
+    ensure len(analyst_profile.specializations) > 0
+    assert forensics_lab.storage_capacity.total_tb > 0
+    assert forensics_lab.storage_capacity.available_tb >= 0
+    ensure forensics_lab.storage_capacity.available_tb <= forensics_lab.storage_capacity.total_tb
+    assert forensics_lab.storage_capacity.evidence_retention_days > 0
+    
+    // Equipment constraints
+    ensure len(forensics_lab.equipment) > 0
+    ensure len(forensics_lab.software_tools) > 0
+    assert forensics_lab.storage_capacity.backup_redundancy >= 2
+    
+    // Legal constraints
+    ensure case_management.evidence_tracking.chain_of_custody_required == true
+    ensure case_management.evidence_tracking.hash_verification == true
+    ensure len(case_management.legal_requirements.admissibility_standards) > 0
+    
+    // Workload constraints
+    ensure len(analyst_profile.active_cases) <= analyst_profile.max_concurrent_cases
+
+  lifecycle:
+    on_start: {
+      actions.initialize_forensics_session(analyst_profile)
+      actions.calibrate_equipment()
+      actions.verify_tool_licenses()
+      actions.load_active_cases(analyst_profile.analyst_id)
+      log_audit_event("forensics_session_started", analyst_profile.analyst_id)
+    }
+    
+    on_shift_end: {
+      actions.secure_evidence_storage()
+      actions.backup_case_data()
+      actions.handoff_active_cases()
+      actions.generate_shift_report()
+      log_audit_event("forensics_shift_ended", analyst_profile.analyst_id)
+    }
+    
+    on_error: {
+      actions.preserve_evidence_integrity()
+      actions.escalate_system_failure()
+      actions.activate_manual_procedures()
+      notify_lab_supervisor("system_error", error_details)
+    }
+
+  extensions:
+    use "mcp" {
+      endpoints: ["ai.assess_evidence", "ai.generate_imaging_plan", "ai.generate_analysis_plan",
+                 "ai.analyze_artifact", "ai.correlate_evidence", "ai.assess_timeline_impact",
+                 "ai.reconstruct_timeline", "ai.validate_timeline", "ai.compile_final_analysis",
+                 "ai.generate_forensic_report", "ai.analyze_case_priorities"]
+    }
+    
+    use "chain_of_custody" {
+      digital_signatures: case_management.evidence_tracking.digital_signatures
+      audit_trail: case_management.evidence_tracking.audit_trail
+      hash_verification: case_management.evidence_tracking.hash_verification
+    }
+    
+    use "legal_compliance" {
+      jurisdiction: case_management.legal_requirements.jurisdiction
+      standards: case_management.legal_requirements.admissibility_standards
+      privacy_compliance: case_management.legal_requirements.privacy_compliance
+    }
+    
+    use "forensics_tools" {
+      equipment: forensics_lab.equipment
+      software: forensics_lab.software_tools
+      calibration_tracking: true
+    }
+}
