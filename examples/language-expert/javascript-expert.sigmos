@@ -1,0 +1,100 @@
+spec "JavaScriptExpert" v1.0 {
+  description: "AI-powered JavaScript/TypeScript code review expert with specialized analysis for modern JS patterns, async programming, and ecosystem best practices."
+
+  inputs:
+    review_id: string
+    language_variant: string { default: "typescript" }
+    target_environment: string { default: "browser" }
+    js_version: string { default: "es2022" }
+    framework: string { default: "react" }
+    
+    eslint_rules: bool { default: true }
+    typescript_strict: bool { default: true }
+    prettier_formatting: bool { default: true }
+    import_analysis: bool { default: true }
+    
+    async_patterns: bool { default: true }
+    promise_handling: bool { default: true }
+    event_loop_analysis: bool { default: true }
+    memory_leak_detection: bool { default: true }
+    
+    ai_models: string
+    linting_tools: string { default: "eslint,tsc,prettier" }
+    bundler: string { default: "webpack" }
+    
+    security_scanning: bool { default: true }
+    xss_protection: bool { default: true }
+    dependency_vulnerabilities: bool { default: true }
+    performance_analysis: bool { default: true }
+    
+    react_patterns: bool { default: false }
+    vue_patterns: bool { default: false }
+    node_patterns: bool { default: false }
+    web_api_usage: bool { default: true }
+
+  computed:
+    code_quality_score: -> calculate_js_quality()
+    performance_rating: -> assess_js_performance()
+    type_safety_score: -> measure_type_safety()
+    
+  events:
+    on_create(review): initialize_javascript_review
+    on_lint_complete(results): process_eslint_results
+    on_type_check_complete(errors): handle_typescript_errors
+    on_security_scan_complete(vulnerabilities): process_js_vulnerabilities
+    on_error(build_failure): handle_javascript_error
+
+  actions:
+    initialize_javascript_review {
+      description: "Initialize JavaScript/TypeScript code review"
+      mcp_call: "javascript/initialize"
+      parameters: {
+        review_id: review_id,
+        language_variant: language_variant,
+        target_environment: target_environment,
+        js_version: js_version,
+        framework: framework
+      }
+    }
+
+    process_eslint_results {
+      description: "Process ESLint and code quality results"
+      mcp_call: "javascript/process_linting"
+      parameters: {
+        review_id: review_id,
+        eslint_rules: eslint_rules,
+        prettier_formatting: prettier_formatting,
+        code_quality_score: code_quality_score
+      }
+    }
+
+    handle_typescript_errors {
+      description: "Handle TypeScript type checking errors"
+      mcp_call: "javascript/typescript_analysis"
+      parameters: {
+        review_id: review_id,
+        typescript_strict: typescript_strict,
+        type_safety_score: type_safety_score
+      }
+    }
+
+    process_js_vulnerabilities {
+      description: "Process JavaScript-specific security vulnerabilities"
+      mcp_call: "javascript/security_analysis"
+      parameters: {
+        review_id: review_id,
+        security_scanning: security_scanning,
+        xss_protection: xss_protection,
+        dependency_vulnerabilities: dependency_vulnerabilities
+      }
+    }
+
+    handle_javascript_error {
+      description: "Handle JavaScript build and analysis errors"
+      mcp_call: "javascript/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "build_failure"
+      }
+    }
+}

@@ -1,0 +1,98 @@
+spec "SecurityReviewExpert" v1.0 {
+  description: "AI-powered security review expert with vulnerability detection, threat modeling, and comprehensive security analysis for PR evaluation."
+
+  inputs:
+    review_id: string
+    repository_name: string
+    security_level: string { default: "high" }
+    threat_model: string { default: "web_application" }
+    compliance_framework: string { default: "owasp" }
+    
+    vulnerability_scanning: bool { default: true }
+    dependency_audit: bool { default: true }
+    secrets_detection: bool { default: true }
+    code_injection_check: bool { default: true }
+    
+    authentication_review: bool { default: true }
+    authorization_review: bool { default: true }
+    encryption_review: bool { default: true }
+    input_validation_check: bool { default: true }
+    
+    ai_models: string
+    security_scanners: string
+    vulnerability_databases: string
+    
+    automated_remediation: bool { default: false }
+    risk_scoring: bool { default: true }
+    false_positive_filtering: bool { default: true }
+    
+    penetration_testing: bool { default: false }
+    threat_intelligence: bool { default: true }
+    security_metrics: bool { default: true }
+    incident_correlation: bool { default: false }
+
+  computed:
+    security_score: -> calculate_security_score()
+    risk_level: -> assess_risk_level()
+    vulnerability_count: -> count_vulnerabilities()
+    
+  events:
+    on_create(review): initialize_security_review
+    on_scan_complete(vulnerabilities): process_vulnerabilities
+    on_dependency_audit_complete(results): analyze_dependencies
+    on_secrets_found(secrets): handle_secrets_detection
+    on_error(scan_failure): handle_security_error
+
+  actions:
+    initialize_security_review {
+      description: "Initialize comprehensive security review"
+      mcp_call: "security/initialize"
+      parameters: {
+        review_id: review_id,
+        repository_name: repository_name,
+        security_level: security_level,
+        threat_model: threat_model,
+        compliance_framework: compliance_framework
+      }
+    }
+
+    process_vulnerabilities {
+      description: "Process and prioritize security vulnerabilities"
+      mcp_call: "security/process_vulnerabilities"
+      parameters: {
+        review_id: review_id,
+        security_score: security_score,
+        risk_level: risk_level,
+        vulnerability_count: vulnerability_count
+      }
+    }
+
+    analyze_dependencies {
+      description: "Analyze dependency security and licensing"
+      mcp_call: "security/dependency_analysis"
+      parameters: {
+        review_id: review_id,
+        dependency_audit: dependency_audit,
+        vulnerability_databases: vulnerability_databases
+      }
+    }
+
+    handle_secrets_detection {
+      description: "Handle detected secrets and sensitive data"
+      mcp_call: "security/secrets_handling"
+      parameters: {
+        review_id: review_id,
+        secrets_detection: secrets_detection,
+        automated_remediation: automated_remediation
+      }
+    }
+
+    handle_security_error {
+      description: "Handle security scan errors and failures"
+      mcp_call: "security/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "scan_failure"
+      }
+    }
+}

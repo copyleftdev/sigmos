@@ -1,0 +1,99 @@
+spec "PythonExpert" v1.0 {
+  description: "AI-powered Python code review expert with specialized analysis for Python idioms, performance patterns, and ecosystem best practices."
+
+  inputs:
+    review_id: string
+    python_version: string { default: "3.11" }
+    project_type: string { default: "web_application" }
+    framework: string { default: "django" }
+    package_manager: string { default: "pip" }
+    
+    pep8_compliance: bool { default: true }
+    type_hints_check: bool { default: true }
+    docstring_analysis: bool { default: true }
+    import_optimization: bool { default: true }
+    
+    async_await_patterns: bool { default: true }
+    generator_usage: bool { default: true }
+    context_managers: bool { default: true }
+    decorator_patterns: bool { default: true }
+    
+    ai_models: string
+    linting_tools: string { default: "pylint,flake8,mypy" }
+    testing_framework: string { default: "pytest" }
+    
+    security_scanning: bool { default: true }
+    dependency_vulnerabilities: bool { default: true }
+    code_complexity: bool { default: true }
+    performance_analysis: bool { default: true }
+    
+    django_patterns: bool { default: false }
+    flask_patterns: bool { default: false }
+    fastapi_patterns: bool { default: false }
+    data_science_patterns: bool { default: false }
+
+  computed:
+    pythonic_score: -> calculate_pythonic_score()
+    complexity_rating: -> measure_complexity()
+    performance_rating: -> assess_performance()
+    
+  events:
+    on_create(review): initialize_python_review
+    on_lint_complete(results): process_linting_results
+    on_type_check_complete(errors): handle_type_errors
+    on_security_scan_complete(vulnerabilities): process_python_vulnerabilities
+    on_error(analysis_failure): handle_python_error
+
+  actions:
+    initialize_python_review {
+      description: "Initialize Python-specific code review"
+      mcp_call: "python/initialize"
+      parameters: {
+        review_id: review_id,
+        python_version: python_version,
+        project_type: project_type,
+        framework: framework,
+        package_manager: package_manager
+      }
+    }
+
+    process_linting_results {
+      description: "Process Python linting and style check results"
+      mcp_call: "python/process_linting"
+      parameters: {
+        review_id: review_id,
+        pep8_compliance: pep8_compliance,
+        linting_tools: linting_tools,
+        pythonic_score: pythonic_score
+      }
+    }
+
+    handle_type_errors {
+      description: "Handle Python type checking errors and hints"
+      mcp_call: "python/type_analysis"
+      parameters: {
+        review_id: review_id,
+        type_hints_check: type_hints_check,
+        python_version: python_version
+      }
+    }
+
+    process_python_vulnerabilities {
+      description: "Process Python-specific security vulnerabilities"
+      mcp_call: "python/security_analysis"
+      parameters: {
+        review_id: review_id,
+        security_scanning: security_scanning,
+        dependency_vulnerabilities: dependency_vulnerabilities
+      }
+    }
+
+    handle_python_error {
+      description: "Handle Python analysis errors"
+      mcp_call: "python/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "analysis_failure"
+      }
+    }
+}

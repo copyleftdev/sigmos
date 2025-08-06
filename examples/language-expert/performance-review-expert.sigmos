@@ -1,0 +1,98 @@
+spec "PerformanceReviewExpert" v1.0 {
+  description: "AI-powered performance review expert with code efficiency analysis, bottleneck detection, and optimization recommendations for comprehensive PR evaluation."
+
+  inputs:
+    review_id: string
+    repository_name: string
+    performance_target: string { default: "production" }
+    benchmark_baseline: string { default: "current" }
+    optimization_level: string { default: "moderate" }
+    
+    cpu_profiling: bool { default: true }
+    memory_analysis: bool { default: true }
+    io_performance: bool { default: true }
+    network_latency: bool { default: true }
+    
+    algorithm_complexity: bool { default: true }
+    database_query_analysis: bool { default: true }
+    caching_strategy_review: bool { default: true }
+    concurrency_analysis: bool { default: true }
+    
+    ai_models: string
+    profiling_tools: string
+    benchmark_suites: string
+    
+    automated_optimization: bool { default: false }
+    performance_regression_check: bool { default: true }
+    load_testing: bool { default: false }
+    
+    scalability_analysis: bool { default: true }
+    resource_utilization: bool { default: true }
+    bottleneck_identification: bool { default: true }
+    optimization_suggestions: bool { default: true }
+
+  computed:
+    performance_score: -> calculate_performance_score()
+    optimization_potential: -> assess_optimization()
+    bottleneck_severity: -> measure_bottlenecks()
+    
+  events:
+    on_create(review): initialize_performance_review
+    on_profiling_complete(results): analyze_performance_metrics
+    on_benchmark_complete(scores): compare_performance
+    on_bottleneck_detected(location): investigate_bottleneck
+    on_error(profiling_failure): handle_performance_error
+
+  actions:
+    initialize_performance_review {
+      description: "Initialize comprehensive performance review"
+      mcp_call: "performance/initialize"
+      parameters: {
+        review_id: review_id,
+        repository_name: repository_name,
+        performance_target: performance_target,
+        benchmark_baseline: benchmark_baseline,
+        optimization_level: optimization_level
+      }
+    }
+
+    analyze_performance_metrics {
+      description: "Analyze performance profiling results"
+      mcp_call: "performance/analyze_metrics"
+      parameters: {
+        review_id: review_id,
+        performance_score: performance_score,
+        cpu_profiling: cpu_profiling,
+        memory_analysis: memory_analysis
+      }
+    }
+
+    compare_performance {
+      description: "Compare performance against benchmarks"
+      mcp_call: "performance/benchmark_comparison"
+      parameters: {
+        review_id: review_id,
+        benchmark_baseline: benchmark_baseline,
+        performance_regression_check: performance_regression_check
+      }
+    }
+
+    investigate_bottleneck {
+      description: "Investigate detected performance bottlenecks"
+      mcp_call: "performance/bottleneck_analysis"
+      parameters: {
+        review_id: review_id,
+        bottleneck_severity: bottleneck_severity,
+        optimization_potential: optimization_potential
+      }
+    }
+
+    handle_performance_error {
+      description: "Handle performance analysis errors"
+      mcp_call: "performance/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "profiling_failure"
+      }
+    }
+}

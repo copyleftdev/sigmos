@@ -1,0 +1,100 @@
+spec "GoExpert" v1.0 {
+  description: "AI-powered Go code review expert with specialized analysis for Go idioms, concurrency patterns, and performance optimization."
+
+  inputs:
+    review_id: string
+    go_version: string { default: "1.21" }
+    project_type: string { default: "web_service" }
+    build_tags: string { default: "" }
+    target_os: string { default: "linux" }
+    
+    gofmt_compliance: bool { default: true }
+    golint_analysis: bool { default: true }
+    go_vet_checks: bool { default: true }
+    ineffassign_check: bool { default: true }
+    
+    goroutine_analysis: bool { default: true }
+    channel_patterns: bool { default: true }
+    context_usage: bool { default: true }
+    error_handling_patterns: bool { default: true }
+    
+    ai_models: string
+    static_analysis_tools: string { default: "golangci-lint,staticcheck" }
+    testing_framework: string { default: "testing" }
+    
+    security_scanning: bool { default: true }
+    dependency_vulnerabilities: bool { default: true }
+    performance_profiling: bool { default: true }
+    memory_analysis: bool { default: true }
+    
+    gin_patterns: bool { default: false }
+    echo_patterns: bool { default: false }
+    grpc_patterns: bool { default: false }
+    kubernetes_patterns: bool { default: false }
+
+  computed:
+    idiomatic_score: -> calculate_go_idioms()
+    concurrency_rating: -> assess_concurrency()
+    performance_score: -> measure_go_performance()
+    
+  events:
+    on_create(review): initialize_go_review
+    on_lint_complete(results): process_go_linting
+    on_vet_complete(issues): handle_go_vet_issues
+    on_race_detected(conditions): analyze_race_conditions
+    on_error(build_failure): handle_go_error
+
+  actions:
+    initialize_go_review {
+      description: "Initialize Go-specific code review"
+      mcp_call: "go/initialize"
+      parameters: {
+        review_id: review_id,
+        go_version: go_version,
+        project_type: project_type,
+        build_tags: build_tags,
+        target_os: target_os
+      }
+    }
+
+    process_go_linting {
+      description: "Process Go linting and formatting results"
+      mcp_call: "go/process_linting"
+      parameters: {
+        review_id: review_id,
+        gofmt_compliance: gofmt_compliance,
+        golint_analysis: golint_analysis,
+        idiomatic_score: idiomatic_score
+      }
+    }
+
+    handle_go_vet_issues {
+      description: "Handle Go vet analysis issues"
+      mcp_call: "go/vet_analysis"
+      parameters: {
+        review_id: review_id,
+        go_vet_checks: go_vet_checks,
+        ineffassign_check: ineffassign_check
+      }
+    }
+
+    analyze_race_conditions {
+      description: "Analyze Go concurrency and race conditions"
+      mcp_call: "go/concurrency_analysis"
+      parameters: {
+        review_id: review_id,
+        goroutine_analysis: goroutine_analysis,
+        channel_patterns: channel_patterns,
+        concurrency_rating: concurrency_rating
+      }
+    }
+
+    handle_go_error {
+      description: "Handle Go build and analysis errors"
+      mcp_call: "go/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "build_failure"
+      }
+    }
+}

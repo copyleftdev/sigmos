@@ -1,0 +1,100 @@
+spec "RustExpert" v1.0 {
+  description: "AI-powered Rust code review expert with specialized analysis for memory safety, ownership patterns, and performance optimization."
+
+  inputs:
+    review_id: string
+    rust_edition: string { default: "2021" }
+    project_type: string { default: "binary" }
+    target_architecture: string { default: "x86_64" }
+    optimization_level: string { default: "release" }
+    
+    ownership_analysis: bool { default: true }
+    borrow_checker_insights: bool { default: true }
+    lifetime_analysis: bool { default: true }
+    memory_safety_check: bool { default: true }
+    
+    unsafe_code_review: bool { default: true }
+    concurrency_patterns: bool { default: true }
+    error_handling_patterns: bool { default: true }
+    trait_usage_analysis: bool { default: true }
+    
+    ai_models: string
+    clippy_lints: string { default: "all" }
+    cargo_tools: string { default: "clippy,fmt,audit" }
+    
+    performance_profiling: bool { default: true }
+    compile_time_analysis: bool { default: true }
+    dependency_analysis: bool { default: true }
+    security_audit: bool { default: true }
+    
+    async_rust_patterns: bool { default: false }
+    embedded_patterns: bool { default: false }
+    wasm_patterns: bool { default: false }
+    no_std_compliance: bool { default: false }
+
+  computed:
+    safety_score: -> calculate_safety_score()
+    performance_score: -> measure_performance()
+    idiomatic_rating: -> assess_rust_idioms()
+    
+  events:
+    on_create(review): initialize_rust_review
+    on_clippy_complete(lints): process_clippy_results
+    on_borrow_check_complete(errors): analyze_ownership_issues
+    on_unsafe_detected(blocks): review_unsafe_code
+    on_error(compilation_failure): handle_rust_error
+
+  actions:
+    initialize_rust_review {
+      description: "Initialize Rust-specific code review"
+      mcp_call: "rust/initialize"
+      parameters: {
+        review_id: review_id,
+        rust_edition: rust_edition,
+        project_type: project_type,
+        target_architecture: target_architecture,
+        optimization_level: optimization_level
+      }
+    }
+
+    process_clippy_results {
+      description: "Process Rust Clippy linting results"
+      mcp_call: "rust/process_clippy"
+      parameters: {
+        review_id: review_id,
+        clippy_lints: clippy_lints,
+        idiomatic_rating: idiomatic_rating
+      }
+    }
+
+    analyze_ownership_issues {
+      description: "Analyze Rust ownership and borrowing patterns"
+      mcp_call: "rust/ownership_analysis"
+      parameters: {
+        review_id: review_id,
+        ownership_analysis: ownership_analysis,
+        borrow_checker_insights: borrow_checker_insights,
+        lifetime_analysis: lifetime_analysis
+      }
+    }
+
+    review_unsafe_code {
+      description: "Review unsafe Rust code blocks"
+      mcp_call: "rust/unsafe_review"
+      parameters: {
+        review_id: review_id,
+        unsafe_code_review: unsafe_code_review,
+        memory_safety_check: memory_safety_check,
+        safety_score: safety_score
+      }
+    }
+
+    handle_rust_error {
+      description: "Handle Rust compilation and analysis errors"
+      mcp_call: "rust/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "compilation_failure"
+      }
+    }
+}

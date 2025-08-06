@@ -1,0 +1,101 @@
+spec "JavaExpert" v1.0 {
+  description: "AI-powered Java code review expert with specialized analysis for Java patterns, JVM optimization, and enterprise best practices."
+
+  inputs:
+    review_id: string
+    java_version: string { default: "17" }
+    project_type: string { default: "web_application" }
+    build_tool: string { default: "maven" }
+    framework: string { default: "spring_boot" }
+    
+    checkstyle_rules: bool { default: true }
+    spotbugs_analysis: bool { default: true }
+    pmd_checks: bool { default: true }
+    sonarqube_quality: bool { default: true }
+    
+    design_patterns: bool { default: true }
+    exception_handling: bool { default: true }
+    stream_api_usage: bool { default: true }
+    lambda_expressions: bool { default: true }
+    
+    ai_models: string
+    static_analysis_tools: string { default: "checkstyle,spotbugs,pmd" }
+    testing_framework: string { default: "junit5" }
+    
+    security_scanning: bool { default: true }
+    dependency_vulnerabilities: bool { default: true }
+    performance_profiling: bool { default: true }
+    memory_leak_detection: bool { default: true }
+    
+    spring_patterns: bool { default: false }
+    hibernate_patterns: bool { default: false }
+    microservices_patterns: bool { default: false }
+    enterprise_patterns: bool { default: false }
+
+  computed:
+    code_quality_score: -> calculate_java_quality()
+    performance_rating: -> assess_jvm_performance()
+    design_pattern_score: -> evaluate_patterns()
+    
+  events:
+    on_create(review): initialize_java_review
+    on_static_analysis_complete(results): process_static_analysis
+    on_security_scan_complete(vulnerabilities): handle_java_vulnerabilities
+    on_performance_test_complete(metrics): analyze_jvm_performance
+    on_error(compilation_failure): handle_java_error
+
+  actions:
+    initialize_java_review {
+      description: "Initialize Java-specific code review"
+      mcp_call: "java/initialize"
+      parameters: {
+        review_id: review_id,
+        java_version: java_version,
+        project_type: project_type,
+        build_tool: build_tool,
+        framework: framework
+      }
+    }
+
+    process_static_analysis {
+      description: "Process Java static analysis results"
+      mcp_call: "java/static_analysis"
+      parameters: {
+        review_id: review_id,
+        checkstyle_rules: checkstyle_rules,
+        spotbugs_analysis: spotbugs_analysis,
+        pmd_checks: pmd_checks,
+        code_quality_score: code_quality_score
+      }
+    }
+
+    handle_java_vulnerabilities {
+      description: "Handle Java-specific security vulnerabilities"
+      mcp_call: "java/security_analysis"
+      parameters: {
+        review_id: review_id,
+        security_scanning: security_scanning,
+        dependency_vulnerabilities: dependency_vulnerabilities
+      }
+    }
+
+    analyze_jvm_performance {
+      description: "Analyze JVM performance characteristics"
+      mcp_call: "java/performance_analysis"
+      parameters: {
+        review_id: review_id,
+        performance_profiling: performance_profiling,
+        memory_leak_detection: memory_leak_detection,
+        performance_rating: performance_rating
+      }
+    }
+
+    handle_java_error {
+      description: "Handle Java compilation and analysis errors"
+      mcp_call: "java/error_handling"
+      parameters: {
+        review_id: review_id,
+        error_type: "compilation_failure"
+      }
+    }
+}
